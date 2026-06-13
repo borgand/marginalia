@@ -111,5 +111,13 @@ class MarginaliaFileOpenListener : FileEditorManagerListener {
         val document = FileDocumentManager.getInstance().getDocument(file) ?: return
         project.service<CommentStore>().ensureAnchored(document, file.path)
         project.service<CommentHighlighter>().refreshAll()
+        if (file.name.endsWith(".md", ignoreCase = true)) {
+            val textEditor = source.getSelectedEditor(file) as? com.intellij.openapi.fileEditor.TextEditor
+            textEditor?.editor?.let { ed ->
+                val decorator = project.service<com.github.borgand.marginalia.ui.render.MarkdownLineDecorator>()
+                decorator.refresh(ed)
+                com.github.borgand.marginalia.ui.render.MarkdownLineDecorator.attachDocumentListener(project, ed)
+            }
+        }
     }
 }
