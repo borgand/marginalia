@@ -23,6 +23,19 @@ class CustomFoldControllerTest : BasePlatformTestCase() {
         assertEquals(0, custom.size)
     }
 
+    fun `test caret on table leaves it unfolded`() {
+        myFixture.configureByText(
+            "doc.md",
+            "intro\n\n| a | b |\n|---|---|\n| 1 | 2 |\n\noutro\n",
+        )
+        val editor = myFixture.editor
+        editor.caretModel.moveToOffset(editor.document.text.indexOf("| 1 |"))
+        project.service<CustomFoldController>().refresh(editor)
+        val custom = editor.foldingModel.allFoldRegions
+            .filterIsInstance<com.intellij.openapi.editor.CustomFoldRegion>()
+        assertTrue("table should not be folded while caret is inside it", custom.isEmpty())
+    }
+
     fun `test table gets a custom fold when caret away`() {
         myFixture.configureByText(
             "doc.md",

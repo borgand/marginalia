@@ -18,8 +18,8 @@ import com.intellij.openapi.util.Key
 import com.intellij.psi.PsiDocumentManager
 
 /**
- * Installs CustomFoldRegions for big H1/H2 titles. Skips any heading whose line currently
- * contains the caret (so it stays editable). Re-run on caret move + document change.
+ * Central controller for Tier-2 custom-fold rendering. Installs CustomFoldRegions for big
+ * H1/H2 titles and Markdown tables, skipping any region whose line range contains the caret.
  */
 @Service(Service.Level.PROJECT)
 class CustomFoldController(private val project: Project) {
