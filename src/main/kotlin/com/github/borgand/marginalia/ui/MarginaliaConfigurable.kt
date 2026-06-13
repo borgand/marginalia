@@ -114,6 +114,22 @@ class MarginaliaConfigurable : Configurable {
         render.bigTitles = bigTitlesBox.isSelected
         render.renderTables = renderTablesBox.isSelected
         render.inlineImages = inlineImagesBox.isSelected
+        refreshOpenMarkdownEditors()
+    }
+
+    private fun refreshOpenMarkdownEditors() {
+        for (project in com.intellij.openapi.project.ProjectManager.getInstance().openProjects) {
+            if (project.isDisposed) continue
+            val fem = com.intellij.openapi.fileEditor.FileEditorManager.getInstance(project)
+            for (file in fem.openFiles) {
+                if (!file.name.endsWith(".md", ignoreCase = true)) continue
+                val editor = (fem.getSelectedEditor(file) as? com.intellij.openapi.fileEditor.TextEditor)?.editor ?: continue
+                project.service<com.github.borgand.marginalia.ui.render.MarkdownLineDecorator>().refresh(editor)
+                project.service<com.github.borgand.marginalia.ui.render.fold.CustomFoldController>().refresh(editor)
+            }
+            // re-run annotator + folding builder (they read RenderSettings) on all open files
+            com.intellij.codeInsight.daemon.DaemonCodeAnalyzer.getInstance(project).restart()
+        }
     }
 
     override fun reset() {

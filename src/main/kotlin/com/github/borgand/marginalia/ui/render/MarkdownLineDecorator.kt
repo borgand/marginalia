@@ -58,7 +58,8 @@ class MarkdownLineDecorator(private val project: Project) {
             val start = editor.offsetToXY(highlighter.startOffset)
             val end = editor.offsetToXY(highlighter.endOffset)
             val lineHeight = editor.lineHeight
-            g.color = JBColor.GRAY
+            val attrs = editor.colorsScheme.getAttributes(MarginaliaTextAttributes.BLOCKQUOTE)
+            g.color = attrs?.foregroundColor ?: JBColor.GRAY
             val x = start.x + 2
             g.fillRect(x, start.y, 3, (end.y - start.y) + lineHeight)
         }
