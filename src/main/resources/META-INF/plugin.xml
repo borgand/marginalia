@@ -1,19 +1,80 @@
 <!-- Plugin Configuration File. Read more: https://plugins.jetbrains.com/docs/intellij/plugin-configuration-file.html -->
 <idea-plugin>
     <id>com.github.borgand.marginalia</id>
-    <name>marginalia</name>
+    <name>Marginalia</name>
     <vendor>borgand</vendor>
     <description><![CDATA[
-        <p><b>marginalia</b> is a repository that provides a pure template to make it easier to create a new plugin project.</p>
-        <p>The main goal of this template is to speed up the setup phase of plugin development for both new and experienced developers by preconfiguring the project scaffold and CI, linking to the proper documentation pages, and keeping everything organized.</p>
+        <p><b>Marginalia</b> turns the IDE into a live co-editing surface for AI coding agents
+        (primarily Claude Code). Comment on anchored text ranges PR-review-style; the agent
+        receives the comments through a local MCP server hosted by the plugin and applies its
+        edits back through a merge engine — while you keep typing in the same buffer.</p>
+        <ul>
+            <li>PR-style comments anchored to text ranges that survive edits by either party</li>
+            <li>Local MCP server (Streamable HTTP) exposing the live buffer and comment queue</li>
+            <li>Merge engine with user-wins conflict policy — agent edits never clobber your typing</li>
+            <li>PreToolUse hook that routes agent file edits through the merge engine</li>
+        </ul>
     ]]></description>
 
     <depends>com.intellij.modules.platform</depends>
 
-    <resource-bundle>messages.MyBundle</resource-bundle>
-
     <extensions defaultExtensionNs="com.intellij">
-        <toolWindow factoryClass="com.github.borgand.marginalia.toolWindow.MyToolWindowFactory" id="MyToolWindow"/>
-        <postStartupActivity implementation="com.github.borgand.marginalia.startup.MyProjectActivity" />
+        <postStartupActivity implementation="com.github.borgand.marginalia.startup.MarginaliaStartupActivity"/>
+        <notificationGroup id="Marginalia" displayType="BALLOON"/>
+        <toolWindow id="Marginalia" anchor="right" icon="/icons/marginalia.svg"
+                    factoryClass="com.github.borgand.marginalia.ui.toolwindow.MarginaliaToolWindowFactory"/>
+        <applicationConfigurable parentId="tools"
+                                 instance="com.github.borgand.marginalia.ui.MarginaliaConfigurable"
+                                 id="com.github.borgand.marginalia.settings"
+                                 displayName="Marginalia"/>
+        <editorFloatingToolbarProvider
+            implementation="com.github.borgand.marginalia.ui.MarginaliaFloatingToolbarProvider"/>
+        <editorTabColorProvider
+            implementation="com.github.borgand.marginalia.ui.editor.MarginaliaTabColorProvider"/>
     </extensions>
+
+    <applicationListeners>
+        <listener class="com.github.borgand.marginalia.core.ReloadGuard"
+                  topic="com.intellij.openapi.fileEditor.FileDocumentManagerListener"/>
+    </applicationListeners>
+
+    <projectListeners>
+        <listener class="com.github.borgand.marginalia.ui.editor.MarginaliaFileOpenListener"
+                  topic="com.intellij.openapi.fileEditor.FileEditorManagerListener"/>
+    </projectListeners>
+
+    <actions>
+        <action id="Marginalia.AddComment"
+                class="com.github.borgand.marginalia.ui.comment.AddCommentAction"
+                text="Add Marginalia Comment"
+                description="Comment on the selected text range for the AI agent"
+                icon="AllIcons.General.Add">
+            <add-to-group group-id="EditorPopupMenu" anchor="first"/>
+            <keyboard-shortcut keymap="$default" first-keystroke="ctrl alt M"/>
+            <keyboard-shortcut keymap="Mac OS X 10.5+" first-keystroke="meta alt M" replace-all="true"/>
+        </action>
+
+        <!-- Action group backing the in-editor floating toolbar (shown on text selection). -->
+        <group id="Marginalia.FloatingCommentToolbar">
+            <reference ref="Marginalia.AddComment"/>
+        </group>
+        <action id="Marginalia.ToggleCoEdit"
+                class="com.github.borgand.marginalia.ui.ToggleCoEditAction"
+                text="Marginalia: Co-Edit This File"
+                description="Register or unregister this file for live co-editing">
+            <add-to-group group-id="EditorPopupMenu" anchor="after" relative-to-action="Marginalia.AddComment"/>
+        </action>
+        <action id="Marginalia.InstallClaudeIntegration"
+                class="com.github.borgand.marginalia.ui.InstallClaudeIntegrationAction"
+                text="Marginalia: Install Claude Code Integration"
+                description="Install the PreToolUse hook, settings entry and /marginalia slash command">
+            <add-to-group group-id="ToolsMenu" anchor="last"/>
+        </action>
+        <action id="Marginalia.RestartServer"
+                class="com.github.borgand.marginalia.ui.RestartServerAction"
+                text="Marginalia: Restart MCP Server"
+                description="Stop and start the MCP server, picking up a changed port">
+            <add-to-group group-id="ToolsMenu" anchor="last"/>
+        </action>
+    </actions>
 </idea-plugin>

@@ -1,0 +1,240 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Marginalia — Redesign</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
+<style>
+  html, body { margin: 0; height: 100%; background: #16181c; }
+  * { box-sizing: border-box; }
+  button { font-family: inherit; }
+  .mg-rowact { transition: opacity .12s; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+<script type="text/babel" src="design-canvas.jsx"></script>
+<script type="text/babel" src="mg-tokens.jsx"></script>
+<script type="text/babel" src="mg-data.jsx"></script>
+<script type="text/babel" src="mg-sidecar.jsx"></script>
+<script type="text/babel" src="mg-pieces.jsx"></script>
+
+<script type="text/babel">
+const { DesignCanvas, DCSection, DCArtboard, DCPostIt } = window;
+const { Sidecar, CommentModal, InlinePopup, EditorPane, IconStates, Hero } = window;
+const { MGThemeProvider, useMG, MG_TOKENS, MG_TOKEN_ORDER } = window;
+const MONO = "'JetBrains Mono',monospace";
+
+// ── overview cover ────────────────────────────────────────────────────────────
+function Cover() {
+  const t = useMG();
+  return (
+    <div style={{ width: 760, height: 480, background: t.surfaceToolWindow, color: t.textPrimary, fontFamily: "'Inter',sans-serif", padding: 34, display: 'flex', flexDirection: 'column' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+        <svg width="34" height="34" viewBox="0 0 18 18" fill="none">
+          <rect x="1" y="1" width="16" height="16" rx="4.5" fill={t.chipBg} stroke={t.border} />
+          <path d="M6.2 4v10" stroke={t.status.queued} strokeWidth="1.4" strokeLinecap="round" />
+          <path d="M8.6 6.4h4.4M8.6 9h4.4M8.6 11.6h2.6" stroke={t.textMuted} strokeWidth="1.2" strokeLinecap="round" />
+          <circle cx="6.2" cy="8.4" r="1.7" fill={t.status.queued} />
+        </svg>
+        <div>
+          <div style={{ fontSize: 22, fontWeight: 700, letterSpacing: -0.2 }}>Marginalia — UI refresh</div>
+          <div style={{ fontSize: 13, color: t.dim, marginTop: 2 }}>Native JetBrains New UI. Every color is a theme token — light &amp; dark from one id.</div>
+        </div>
+      </div>
+
+      <div style={{ height: 1, background: t.border, margin: '22px 0' }} />
+
+      <div style={{ display: 'flex', gap: 34, flex: 1 }}>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1, color: t.textMuted, marginBottom: 14 }}>KEY MOVES</div>
+          {[
+            ['Comments grouped by file', 'anchored snippets + jump-to-line — you always know which doc a note lives in.'],
+            ['Margin-ink status system', 'pending, delivered (accent), resolved — echoed in the editor gutter.'],
+            ['Review-session progress', 'a ribbon shows how much of your pass the agent has worked through.'],
+            ['Clean connection header', 'a “Connected” chip replaces the raw console; logs tuck behind a toggle.'],
+            ['Two comment surfaces', 'a refined modal and an inline popup anchored right at the line.'],
+          ].map(([h, b], i) => (
+            <div key={i} style={{ display: 'flex', gap: 10, marginBottom: 11 }}>
+              <span style={{ width: 6, height: 6, borderRadius: 99, background: t.status.queued, marginTop: 6, flex: '0 0 auto' }} />
+              <div style={{ fontSize: 12.5, lineHeight: 1.45 }}><b style={{ color: t.textPrimary }}>{h}</b> <span style={{ color: t.dim }}>— {b}</span></div>
+            </div>
+          ))}
+        </div>
+
+        <div style={{ width: 1, background: t.border }} />
+
+        <div style={{ flex: 1 }}>
+          <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1, color: t.textMuted, marginBottom: 14 }}>THEME-SAFE BY CONSTRUCTION</div>
+          <div style={{ fontSize: 12.5, lineHeight: 1.55, color: t.dim, marginBottom: 16 }}>
+            No raw hex on any layer. Each surface, fill and text color references a <b style={{ color: t.textPrimary }}>role token</b> that
+            dereferences to an IntelliJ Platform theme key — so the whole UI follows the user’s theme automatically.
+          </div>
+          <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1, color: t.textMuted, margin: '0 0 10px' }}>TYPE</div>
+          <div style={{ fontSize: 16, fontWeight: 600 }}>Inter <span style={{ color: t.textMuted, fontSize: 12, fontWeight: 400 }}>— UI chrome (New UI default)</span></div>
+          <div style={{ fontSize: 14, fontFamily: MONO, marginTop: 6 }}>JetBrains Mono <span style={{ color: t.textMuted, fontSize: 12, fontFamily: "'Inter'" }}>— code &amp; anchors</span></div>
+          <div style={{ marginTop: 18, display: 'inline-flex', alignItems: 'center', gap: 8, fontSize: 11.5, color: t.dim, fontFamily: MONO, background: t.chipBg, border: '1px solid ' + t.border, borderRadius: 7, padding: '6px 10px' }}>
+            <span style={{ width: 6, height: 6, borderRadius: 99, background: t.status.resolved }} />
+            ships with marginalia-tokens.json
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── full token reference: role id · IDE dereference · light/dark values ───────
+function TokenReference() {
+  const t = useMG();
+  const Chip = ({ hex }) => <span style={{ width: 22, height: 22, borderRadius: 6, background: hex, border: '1px solid ' + t.withAlpha(t.dark ? '#FFFFFF' : '#000000', 0.18), flex: '0 0 auto', display: 'inline-block' }} />;
+  const swatch = (lbl, hex) => (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+      <Chip hex={hex} />
+      <div style={{ lineHeight: 1.2 }}>
+        <div style={{ fontSize: 8.5, fontWeight: 700, color: t.dim, letterSpacing: 0.6 }}>{lbl}</div>
+        <div style={{ fontFamily: MONO, fontSize: 10.5, color: t.textMuted }}>{hex}</div>
+      </div>
+    </div>
+  );
+
+  let lastGroup = null;
+  const rows = [];
+  MG_TOKEN_ORDER.forEach((id) => {
+    const d = MG_TOKENS[id];
+    if (d.group !== lastGroup) {
+      lastGroup = d.group;
+      rows.push(
+        <div key={'grp-' + id} style={{ gridColumn: '1 / -1', fontSize: 10, fontWeight: 700, letterSpacing: 1.2, textTransform: 'uppercase', color: t.status.queued, padding: rows.length ? '14px 0 0' : '0' }}>
+          {d.group === 'core' ? 'The core six' : 'Companions'}
+        </div>
+      );
+    }
+    rows.push(
+      <React.Fragment key={id}>
+        <div style={{ minWidth: 0 }}>
+          <div style={{ fontFamily: MONO, fontSize: 12.5, fontWeight: 600, color: t.textPrimary }}>{id}</div>
+          <div style={{ fontSize: 11, color: t.textMuted, marginTop: 2 }}>{d.role}</div>
+        </div>
+        <div style={{ fontFamily: MONO, fontSize: 10.5, color: t.dim, minWidth: 0, wordBreak: 'break-word', alignSelf: 'center' }}>{d.api}</div>
+        <div style={{ display: 'flex', gap: 16, alignSelf: 'center' }}>
+          {swatch('LIGHT', d.light)}
+          {swatch('DARK', d.dark)}
+        </div>
+      </React.Fragment>
+    );
+  });
+
+  return (
+    <div style={{ width: 1000, height: 880, background: t.surfaceToolWindow, color: t.textPrimary, fontFamily: "'Inter',sans-serif", padding: '30px 34px', display: 'flex', flexDirection: 'column' }}>
+      <div style={{ fontSize: 19, fontWeight: 700, letterSpacing: -0.2 }}>Color tokens</div>
+      <div style={{ fontSize: 12.5, color: t.dim, marginTop: 4, marginBottom: 22 }}>
+        Named by role, never by appearance · one id → one IDE lookup → both modes · the <span style={{ fontFamily: MONO, color: t.textPrimary }}>api</span> is the source of truth at runtime
+      </div>
+      <div style={{
+        display: 'grid', gridTemplateColumns: '212px 1fr 222px', columnGap: 22, rowGap: 13,
+        alignItems: 'center', borderTop: '1px solid ' + t.border, paddingTop: 18, flex: 1,
+      }}>
+        {rows}
+      </div>
+      <div style={{ marginTop: 16, fontSize: 11.5, color: t.textMuted, lineHeight: 1.5, borderTop: '1px solid ' + t.border, paddingTop: 14 }}>
+        Translucency is <span style={{ fontFamily: MONO, color: t.dim }}>token @ NN%</span>, never a new token (e.g. the queued line tint is <span style={{ fontFamily: MONO, color: t.dim }}>status.pending @ 12%</span>).
+        The light/dark hexes only render this mock &amp; serve as the implementer’s <span style={{ fontFamily: MONO, color: t.dim }}>JBColor</span> fallback.
+      </div>
+    </div>
+  );
+}
+
+// ── light/dark switch (canvas chrome, fixed) ──────────────────────────────────
+function ModeToggle({ mode, setMode }) {
+  const seg = (m, label) => (
+    <button onClick={() => setMode(m)} style={{
+      border: 'none', cursor: 'pointer', fontFamily: "'Inter',sans-serif", fontSize: 12.5, fontWeight: 600,
+      padding: '6px 15px', borderRadius: 7, color: mode === m ? '#fff' : 'rgba(255,255,255,0.55)',
+      background: mode === m ? 'rgba(255,255,255,0.16)' : 'transparent', transition: 'background .12s, color .12s',
+    }}>{label}</button>
+  );
+  return (
+    <div style={{
+      position: 'fixed', top: 14, right: 16, zIndex: 200, display: 'flex', alignItems: 'center', gap: 3, padding: 4,
+      background: 'rgba(28,26,22,0.92)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 11,
+      boxShadow: '0 6px 22px rgba(0,0,0,0.28)', backdropFilter: 'blur(8px)',
+    }}>
+      <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: 1, color: 'rgba(255,255,255,0.45)', padding: '0 6px 0 9px' }}>THEME</span>
+      {seg('light', 'Light')}
+      {seg('dark', 'Dark')}
+    </div>
+  );
+}
+
+function App() {
+  const [mode, setMode] = React.useState(() => {
+    try { return localStorage.getItem('mg-mode') || 'dark'; } catch (e) { return 'dark'; }
+  });
+  React.useEffect(() => { try { localStorage.setItem('mg-mode', mode); } catch (e) {} }, [mode]);
+
+  return (
+    <React.Fragment>
+      <MGThemeProvider mode={mode}>
+        <DesignCanvas>
+          <DCSection id="overview" title="Marginalia — UI Refresh" subtitle="Native JetBrains New UI · theme-tokenized · light + dark">
+            <DCArtboard id="cover" label="Overview" width={760} height={480}><Cover /></DCArtboard>
+          </DCSection>
+
+          <DCSection id="tokens" title="Design tokens" subtitle="The bridge to the implementer — role id, the verbatim IDE dereference, and both rendered values">
+            <DCArtboard id="tokens-ref" label="Color token reference" width={1000} height={880}><TokenReference /></DCArtboard>
+            <DCPostIt top={-8} right={-150} width={196}>This is the handoff. The implementing agent reads marginalia-tokens.json — token id → api line → one field in MarginaliaColors. No eyeballing the mock.</DCPostIt>
+          </DCSection>
+
+          <DCSection id="context" title="In context" subtitle="Editor with gutter back-references + the redesigned sidecar, docked right">
+            <DCArtboard id="hero" label="Full IDE — README.md + Marginalia" width={1320} height={940}><Hero /></DCArtboard>
+          </DCSection>
+
+          <DCSection id="sidecar" title="Sidecar — tool window" subtitle="The main panel. Two directions to compare.">
+            <DCArtboard id="grouped" label="A · Grouped by file (recommended)" width={400} height={940}>
+              <Sidecar variant="grouped" />
+            </DCArtboard>
+            <DCArtboard id="timeline" label="B · Activity timeline" width={400} height={940}>
+              <Sidecar variant="timeline" />
+            </DCArtboard>
+            <DCPostIt top={-8} right={-150} width={196}>A groups notes under each file with a per-file “to send” count — best for back-referencing. B is a flat recency feed, better when tracking the agent live.</DCPostIt>
+          </DCSection>
+
+          <DCSection id="commentbox" title="Comment box" subtitle="Two surfaces for capturing a note">
+            <DCArtboard id="modal" label="Refined modal — shows the anchored line" width={560} height={470}>
+              <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.35)' }}><CommentModal /></div>
+            </DCArtboard>
+            <DCArtboard id="inline" label="Inline popup — anchored at the line" width={430} height={340}>
+              <InlinePopup />
+            </DCArtboard>
+          </DCSection>
+
+          <DCSection id="backref" title="In-editor back-referencing" subtitle="Gutter pen icons + a pending margin-rule mark every commented line; the file tab carries a dot">
+            <DCArtboard id="editor" label="README.md — commented lines highlighted" width={620} height={560}>
+              <EditorPane width={620} height={560} />
+            </DCArtboard>
+          </DCSection>
+
+          <DCSection id="icon" title="Tool window stripe icon" subtitle="States on the right activity bar">
+            <DCArtboard id="icons" label="Icon states" width={760} height={200}>
+              <IconStates />
+            </DCArtboard>
+          </DCSection>
+        </DesignCanvas>
+      </MGThemeProvider>
+      <ModeToggle mode={mode} setMode={setMode} />
+    </React.Fragment>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>

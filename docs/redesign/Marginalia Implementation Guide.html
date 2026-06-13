@@ -1,0 +1,293 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Marginalia — Implementation Guide</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --ink:#23262B; --dim:#5A616B; --mute:#878E98; --line:#E7E4DE; --line2:#F0EDE7;
+    --paper:#FBFAF7; --card:#FFFFFF; --amber:#C5852E; --amberbg:#FBF1DF;
+    --blue:#2A66D9; --bluebg:#EAF0FC; --green:#3E9A52; --greenbg:#E7F3E9; --code:#1E1F22;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;background:var(--paper);}
+  body{font-family:'Inter',system-ui,sans-serif;color:var(--ink);line-height:1.6;
+    -webkit-font-smoothing:antialiased;}
+  .wrap{max-width:860px;margin:0 auto;padding:72px 56px 120px;}
+  h1{font-size:34px;font-weight:800;letter-spacing:-0.5px;margin:0 0 6px;}
+  .sub{font-size:15px;color:var(--dim);margin:0 0 8px;}
+  .meta{font-size:12.5px;color:var(--mute);font-family:'JetBrains Mono',monospace;margin-bottom:40px;}
+  h2{font-size:13px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--amber);
+    margin:52px 0 4px;}
+  h2 .n{color:var(--mute);margin-right:10px;}
+  h3{font-size:19px;font-weight:700;letter-spacing:-0.2px;margin:8px 0 14px;}
+  h4{font-size:14.5px;font-weight:700;margin:26px 0 8px;}
+  p{margin:0 0 14px;font-size:15px;}
+  ul{margin:0 0 16px;padding-left:0;list-style:none;}
+  li{font-size:14.5px;margin:0 0 9px;padding-left:22px;position:relative;}
+  li::before{content:"";position:absolute;left:4px;top:9px;width:6px;height:6px;border-radius:99px;background:var(--amber);}
+  li b{font-weight:600;}
+  code{font-family:'JetBrains Mono',monospace;font-size:12.5px;background:var(--line2);
+    border:1px solid var(--line);border-radius:4px;padding:1px 5px;color:#3A2E1C;white-space:nowrap;}
+  pre{font-family:'JetBrains Mono',monospace;font-size:12.5px;line-height:1.65;background:var(--code);
+    color:#D6D8DD;border-radius:10px;padding:18px 20px;overflow-x:auto;margin:0 0 18px;
+    border:1px solid #2C2E33;}
+  pre .c{color:#7E848F;} pre .k{color:#CF8E6D;} pre .s{color:#6AAB73;} pre .t{color:#9DC1F0;}
+  pre .f{color:#56A8F5;}
+  .lead{display:flex;align-items:center;gap:14px;margin-bottom:36px;padding:16px 20px;background:var(--card);
+    border:1px solid var(--line);border-radius:12px;}
+  .lead svg{flex:0 0 auto;}
+  .lead p{margin:0;font-size:14px;color:var(--dim);}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:0 0 18px;}
+  .tok{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:13px 15px;}
+  .tok .sw{display:flex;align-items:center;gap:10px;margin-bottom:8px;}
+  .tok .chip{width:22px;height:22px;border-radius:6px;border:1px solid rgba(0,0,0,.1);flex:0 0 auto;}
+  .tok .nm{font-size:13.5px;font-weight:600;}
+  .tok .role{font-size:12.5px;color:var(--dim);}
+  .tok .api{font-family:'JetBrains Mono',monospace;font-size:11.5px;color:var(--mute);margin-top:2px;
+    white-space:normal;word-break:break-word;}
+  table{width:100%;border-collapse:collapse;margin:0 0 20px;font-size:13.5px;}
+  th{text-align:left;font-size:11px;letter-spacing:.6px;text-transform:uppercase;color:var(--mute);
+    font-weight:700;padding:0 12px 8px;border-bottom:1px solid var(--line);}
+  td{padding:11px 12px;border-bottom:1px solid var(--line2);vertical-align:top;}
+  td .dot{display:inline-block;width:9px;height:9px;border-radius:99px;margin-right:7px;vertical-align:middle;}
+  .callout{display:flex;gap:12px;background:var(--amberbg);border:1px solid #EAD9B6;border-radius:10px;
+    padding:14px 16px;margin:0 0 18px;font-size:13.5px;color:#6B4E1E;}
+  .callout b{color:#5A4118;}
+  .callout .i{flex:0 0 auto;font-weight:800;color:var(--amber);}
+  .note{font-size:13px;color:var(--mute);font-style:italic;margin:-6px 0 18px;}
+  .rule{height:1px;background:var(--line);margin:46px 0;}
+  .tag{display:inline-block;font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600;
+    padding:2px 8px;border-radius:99px;margin:0 6px 6px 0;}
+  .tag.b{background:var(--bluebg);color:var(--blue);} .tag.a{background:var(--amberbg);color:var(--amber);}
+  .tag.g{background:var(--greenbg);color:var(--green);}
+  ol.steps{counter-reset:s;padding:0;list-style:none;margin:0;}
+  ol.steps li{padding-left:34px;margin-bottom:11px;}
+  ol.steps li::before{counter-increment:s;content:counter(s);background:var(--ink);color:#fff;
+    width:20px;height:20px;border-radius:99px;font-size:11px;font-weight:700;display:flex;
+    align-items:center;justify-content:center;top:2px;left:0;}
+  @media print{ body{background:#fff;} .wrap{padding:0 0 40px;max-width:none;} pre{break-inside:avoid;} h3{break-after:avoid;} }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>Marginalia — Implementation Guide</h1>
+  <p class="sub">Building the redesigned UI on the IntelliJ Platform (Swing + UI DSL v2).</p>
+  <p class="meta">Companion to “Marginalia Redesign.html” + “marginalia-tokens.json” · New UI · light + dark via JBColor</p>
+
+  <div class="lead">
+    <svg width="34" height="34" viewBox="0 0 18 18" fill="none">
+      <rect x="1" y="1" width="16" height="16" rx="4.5" fill="#1F2024" stroke="#393B40"/>
+      <path d="M6.2 4v10" stroke="#E0A458" stroke-width="1.4" stroke-linecap="round"/>
+      <path d="M8.6 6.4h4.4M8.6 9h4.4M8.6 11.6h2.6" stroke="#7E838C" stroke-width="1.2" stroke-linecap="round"/>
+      <circle cx="6.2" cy="8.4" r="1.7" fill="#E0A458"/>
+    </svg>
+    <p><b>Design intent.</b> Keep everything inside what the Platform natively supports — no web views, no custom window chrome. The refresh is achieved entirely through standard components, <code>JBColor</code> theming, a custom list cell renderer, gutter highlighters, and a redesigned <code>DialogWrapper</code>. <b>Every color is a role-named token that dereferences to a Platform theme key</b> — so the same mock holds in both light and dark with zero hand-tuning.</p>
+  </div>
+
+  <h2><span class="n">00</span>Principles</h2>
+  <ul>
+    <li><b>Name by role, never by appearance.</b> The token is <code>status.pending</code>, not <code>amber</code> or <code>color-3</code>. The hue changes per theme; the role doesn’t. One id = one IDE lookup = both modes — never a <code>pending.light</code> and a <code>pending.dark</code>.</li>
+    <li><b>Zero raw hex on layers.</b> Every fill, stroke and text color references a token. A literal hex on a layer is a handoff bug. Translucency is <code>token @ NN%</code> (the queued tint is <code>status.pending @ 12%</code>), never a new token.</li>
+    <li><b>Surface by what it sits on, not how it looks.</b> Anything floating over the editor (add-comment toolbar, gutter highlight, applied-hunk flash) uses <code>surface.editor</code>; the tool window and its rows use <code>surface.toolWindow</code>. They look almost identical but resolve to different theme sources.</li>
+    <li><b>Margin-ink semantics.</b> <code>status.pending</code> = <i>queued / pending note</i>. <code>accent</code> = <i>delivered to agent</i>. <code>status.resolved</code> = <i>resolved</i>. The same three roles appear in the list, the gutter, and the icon badge.</li>
+    <li><b>Don’t fight the editor.</b> Back-references are drawn with the <code>MarkupModel</code> / gutter APIs the editor already exposes — not an overlay. Editor <i>syntax</i> colors come from the active <code>EditorColorsScheme</code>, not from the UI tokens.</li>
+  </ul>
+
+  <h2><span class="n">01</span>Design tokens</h2>
+  <h3>The core six</h3>
+  <p>Each token is named by <b>role</b> and carries the verbatim IDE dereference the implementer binds to. The full table (core + companions) with both rendered values ships as <code>marginalia-tokens.json</code> and is shown on the <i>Color token reference</i> artboard. Chips below show the dark value.</p>
+  <div class="grid">
+    <div class="tok"><div class="sw"><span class="chip" style="background:#2B2D30"></span><div><div class="nm">surface.toolWindow</div></div></div><div class="role">Tool window &amp; its rows</div><div class="api">UIUtil.getPanelBackground()</div></div>
+    <div class="tok"><div class="sw"><span class="chip" style="background:#1E1F22"></span><div><div class="nm">surface.editor</div></div></div><div class="role">Editor + overlays drawn on it</div><div class="api">EditorColorsManager.getInstance().globalScheme.defaultBackground</div></div>
+    <div class="tok"><div class="sw"><span class="chip" style="background:#548AF7"></span><div><div class="nm">accent</div></div></div><div class="role">Links, active icons, delivered</div><div class="api">JBUI.CurrentTheme.Link.Foreground.ENABLED</div></div>
+    <div class="tok"><div class="sw"><span class="chip" style="background:#BA9752"></span><div><div class="nm">status.pending</div></div></div><div class="role">Queued / pending text &amp; marks</div><div class="api">JBUI.CurrentTheme.Label.warningForeground()</div></div>
+    <div class="tok"><div class="sw"><span class="chip" style="background:#5FAD65"></span><div><div class="nm">status.resolved</div></div></div><div class="role">Resolved / connected / success</div><div class="api">JBColor.namedColor("Banner.successBackground", …)</div></div>
+    <div class="tok"><div class="sw"><span class="chip" style="background:#6F737A"></span><div><div class="nm">text.muted</div></div></div><div class="role">Secondary / metadata text</div><div class="api">JBColor.namedColor("Label.infoForeground", …)</div></div>
+  </div>
+  <h4>Companions</h4>
+  <p>The six don’t cover body text, the label on the blue button, separators, or row selection — add these with the same rules:</p>
+  <div class="grid">
+    <div class="tok"><div class="sw"><span class="chip" style="background:#DFE1E5"></span><div><div class="nm">text.primary</div></div></div><div class="role">Body / comment text</div><div class="api">UIUtil.getLabelForeground()</div></div>
+    <div class="tok"><div class="sw"><span class="chip" style="background:#3573F0"></span><div><div class="nm">accent.button</div></div></div><div class="role">Filled primary button bg</div><div class="api">JBUI.CurrentTheme.Button.defaultButtonColorStart()</div></div>
+    <div class="tok"><div class="sw"><span class="chip" style="background:#393B40"></span><div><div class="nm">border</div></div></div><div class="role">Separators &amp; card borders</div><div class="api">JBColor.namedColor("Component.borderColor", …)</div></div>
+    <div class="tok"><div class="sw"><span class="chip" style="background:#2E436E"></span><div><div class="nm">selection.bg</div></div></div><div class="role">Active / selected row</div><div class="api">JBColor.namedColor("List.selectionBackground", …)</div></div>
+  </div>
+  <div class="callout"><span class="i">★</span><div><b>Put the dereference in the token’s description</b> so it ships inside the design file (e.g. <code>description = JBUI.CurrentTheme.Link.Foreground.ENABLED</code>). States are suffixes only when a real theme key exists; otherwise express as an alpha/blend of the base (a pressed row is <code>selection.bg @ 80%</code>).</div></div>
+  <h4>Type</h4>
+  <ul>
+    <li><b>UI font</b> — the IDE default (<code>JBFont.regular()</code>, which is Inter in the New UI). Don’t set a family; inherit it.</li>
+    <li><b>Code / anchors</b> — the editor font, via <code>EditorColorsManager.getInstance().getGlobalScheme().getEditorFontName()</code> (JetBrains Mono by default).</li>
+    <li><b>Sizes</b> — body <code>JBFont.regular()</code>, meta <code>JBFont.small()</code>, the <code>L13</code> chip uses <code>JBFont.smallOrNewUiDefault()</code>.</li>
+  </ul>
+
+  <div class="rule"></div>
+
+  <h2><span class="n">02</span>The sidecar (tool window)</h2>
+  <h3>Container</h3>
+  <p>Replace the current free-form panel with a <code>SimpleToolWindowPanel(true, true)</code>. It gives you a real toolbar slot on top and a content area below.</p>
+<pre><span class="k">class</span> MarginaliaToolWindowFactory : <span class="t">ToolWindowFactory</span>, <span class="t">DumbAware</span> {
+  <span class="k">override fun</span> <span class="f">createToolWindowContent</span>(project: Project, tw: ToolWindow) {
+    <span class="k">val</span> panel = MarginaliaPanel(project)            <span class="c">// SimpleToolWindowPanel</span>
+    <span class="k">val</span> content = ContentFactory.getInstance()
+        .createContent(panel, <span class="s">null</span>, <span class="s">false</span>)
+    tw.contentManager.addContent(content)
+  }
+}</pre>
+
+  <h4>Header &amp; toolbar</h4>
+  <ul>
+    <li>Put the <b>title + connection chip + search + overflow</b> in the tool-window header actions via <code>ToolWindowEx.setTitleActions(...)</code> and <code>setAdditionalGearActions(...)</code> — that keeps the chrome native. The amber brand mark is a <code>16×16</code> <code>Icon</code> set with <code>toolWindow.setIcon(...)</code>.</li>
+    <li>The <b>Auto-queue</b> toggle + <b>Submit review</b> live in the <code>setToolbar()</code> row. Build it with an <code>ActionToolbar</code> from a <code>DefaultActionGroup</code>: a <code>ToggleAction</code> for Auto-queue, then the Submit action.</li>
+    <li><b>Submit review</b> as a filled button (<code>accent.button</code>) is the one deliberate non-default accent. Use a <code>JButton</code> with <code>putClientProperty("JButton.buttonType", "default")</code> + <code>ClientProperty.put(it, DarculaButtonUI…)</code>, or simpler, keep it a standard toolbar action with a tinted icon if you want to stay maximally conservative.</li>
+    <li>Move <b>Restart server</b> / <b>Test connectivity</b> into the gear/overflow menu — they don’t need to be primary.</li>
+  </ul>
+  <div class="callout"><span class="i">★</span><div><b>Connection chip.</b> The green “Connected” pill replaces the console as the at-a-glance signal. Render it as a small <code>JBLabel</code> with a round <code>Icon</code> dot + rounded background (<code>RoundedLineBorder</code> + <code>isOpaque</code>), placed as a title action. Drive its color/text from the MCP connection state.</div></div>
+
+  <h4>Review-session progress ribbon</h4>
+  <p>A thin custom component under the toolbar. Subclass <code>JComponent</code> and paint three rounded segments (resolved / delivered / queued) proportional to counts, then a legend row of <code>JBLabel</code>s. Height <code>JBUI.scale(5)</code> for the bar.</p>
+
+  <h4>The comment list — grouped by file</h4>
+  <p>This is the core change. Two viable approaches:</p>
+  <ul>
+    <li><b>Recommended — flattened <code>JBList</code> with a custom renderer.</b> Build one <code>ListModel</code> mixing two row kinds: <code>FileHeaderRow</code> and <code>CommentRow</code>. A single <code>ListCellRenderer</code> switches layout on the kind. Gives you full control of the card styling and is far lighter than a tree.</li>
+    <li><b>Alternative — <code>Tree</code> / <code>com.intellij.ui.dsl</code> collapsible rows.</b> Use if you need expand/collapse per file out of the box (<code>CollapsibleRow</code> in UI DSL v2).</li>
+  </ul>
+  <p>Each <b>comment card</b> renderer paints, top to bottom:</p>
+  <ul>
+    <li>A <b>2.5px status accent bar</b> on the left edge (the row’s <code>border = JBUI.Borders.customLine(statusColor, 0,2,0,0)</code> won’t round — paint it in <code>paintComponent</code> for the rounded look).</li>
+    <li>Row 1: <b>status pill</b> (rounded <code>JBLabel</code>, soft bg) + <b>line chip</b> <code>L13</code> + spacer + hover-only <b>jump / more</b> action icons (show via <code>list.getMousePosition</code> hover state).</li>
+    <li>Row 2: <b>anchor snippet</b> in the editor font, muted, single-line with <code>…</code> ellipsis, a 2px left rule.</li>
+    <li>Row 3: <b>comment text</b>, UI font, wraps to ~2 lines.</li>
+    <li>Row 4: <b>avatar</b> (initials in a circle) + <code>You · 2m ago</code>.</li>
+  </ul>
+  <p>The <b>file header row</b>: disclosure chevron + markdown <code>FileTypeManager</code> icon + filename (bold) + count badge + a <code>status.pending</code> “<code>N to send</code>” indicator when queued&gt;0.</p>
+
+  <h4>Jump-to-line (back-reference)</h4>
+<pre><span class="c">// on click / Enter / the row's jump icon</span>
+<span class="k">val</span> file = LocalFileSystem.getInstance().findFileByPath(comment.path)
+OpenFileDescriptor(project, file, comment.line, <span class="s">0</span>)
+    .navigate(<span class="s">true</span>)        <span class="c">// focuses editor + scrolls to the anchored line</span></pre>
+
+  <h4>Footer status panel</h4>
+  <p>A one-line bar: green dot + <code>Agent connected · last call 56s ago</code> + an <code>MCP :4747</code> chip + a disclosure chevron. The chevron toggles a collapsed <code>JBScrollPane</code> holding the raw connectivity log (the current console) — kept, but tucked away by default.</p>
+
+  <div class="rule"></div>
+
+  <h2><span class="n">03</span>Comment box — modal</h2>
+  <p>Rebuild “Add Marginalia Comment” as a styled <code>DialogWrapper</code>.</p>
+  <ul>
+    <li><b>Context strip</b> at the top: file icon + <code>README.md</code> + <code>line 13</code>, then the <b>anchored line</b> rendered in the editor font inside a <code>status.pending</code>-ruled quote box. Pull the snippet from the <code>Editor</code>/<code>Document</code> at the caret line — this is what makes the dialog feel anchored.</li>
+    <li><b>Input</b>: a <code>JBTextArea</code> in a <code>JBScrollPane</code>, or an <code>EditorTextField</code> with markdown language for live highlighting. Give it the focus ring by relying on the default focus border (don’t custom-paint).</li>
+    <li><b>Footer</b>: a <code>status.pending</code> “Queues to the agent” hint on the left; <code>createActions()</code> returns <code>[Cancel, OK]</code> where OK is the default and relabelled <b>“Add comment”</b>. Bind <code>⌘↵</code> to OK via <code>setOKButtonMnemonic</code> / a registered shortcut.</li>
+  </ul>
+  <div class="callout"><span class="i">★</span><div><b>Keep the native frame.</b> Don’t draw your own titlebar — <code>DialogWrapper</code> supplies the OS window chrome (the traffic lights in the mock are macOS’s own). Set <code>title = "Add comment"</code> and <code>isResizable = true</code>.</div></div>
+
+  <h3>Comment box — inline popup <span class="tag a">optional / nicer</span></h3>
+  <p>For an in-flow capture that never leaves the editor, present the same content as a balloon anchored to the caret line via <code>JBPopupFactory</code>:</p>
+<pre><span class="k">val</span> popup = JBPopupFactory.getInstance()
+  .createComponentPopupBuilder(commentForm, commentForm.textArea)
+  .setRequestFocus(<span class="s">true</span>)
+  .setResizable(<span class="s">true</span>)
+  .setCancelOnClickOutside(<span class="s">false</span>)
+  .createPopup()
+popup.<span class="f">showInBestPositionFor</span>(editor)   <span class="c">// points at the caret line</span></pre>
+  <p>The balloon shows: pen icon + “Comment” + <code>README.md : 25</code> chip + a <code>status.pending</code> “Queued” tag, the input, then <code>Esc to cancel</code> / <b>Add</b> <code>⌘↵</code>. Offer both surfaces; let a setting pick the default.</p>
+
+  <div class="rule"></div>
+
+  <h2><span class="n">04</span>In-editor back-referencing</h2>
+  <p>Three native layers make commented lines legible inside the document:</p>
+  <ul>
+    <li><b>Gutter pen icon</b> — for each comment, add a <code>RangeHighlighter</code> on its line and attach a <code>GutterIconRenderer</code> that paints the <code>status.pending</code> pen and exposes a click action (open the comment / focus the sidecar row).</li>
+    <li><b>Line tint</b> — same highlighter carries <code>TextAttributes</code> with a faint <code>status.pending @ 12%</code> <code>backgroundColor</code> and a <code>status.pending</code> <code>errorStripeColor</code> so the line also shows on the scrollbar map.</li>
+    <li><b>Tab affordance</b> — a literal dot on a tab isn’t a native primitive; instead tint the tab via <code>EditorTabColorProvider</code> (a barely-there <code>status.pending</code> wash) so files with open comments stand out. This is fully supported and theme-safe.</li>
+  </ul>
+<pre><span class="k">val</span> markup = editor.markupModel
+<span class="k">val</span> hl = markup.<span class="f">addLineHighlighter</span>(line, HighlighterLayer.SELECTION - <span class="s">1</span>, attrs)
+hl.gutterIconRenderer = <span class="k">object</span> : GutterIconRenderer() {
+  <span class="k">override fun</span> <span class="f">getIcon</span>() = MarginaliaIcons.PenAmber
+  <span class="k">override fun</span> <span class="f">getClickAction</span>() = openCommentAction(comment)
+  <span class="k">override fun</span> <span class="f">getTooltipText</span>() = comment.text
+  <span class="k">override fun</span> <span class="f">equals</span>(o: Any?) = …   <span class="k">override fun</span> <span class="f">hashCode</span>() = …
+}</pre>
+  <p class="note">Drive these highlighters off the comment model and the open <code>FileEditorManager</code> editors; refresh on comment add/resolve.</p>
+
+  <div class="rule"></div>
+
+  <h2><span class="n">05</span>Tool-window stripe icon &amp; badge</h2>
+  <ul>
+    <li><b>Base icon</b> — the <code>status.pending</code> margin-rule mark as a <code>16×16</code> themed <code>Icon</code> (<code>@2x</code> + dark variants via the standard naming, or an <code>SvgIcon</code>).</li>
+    <li><b>Needs-review badge</b> — overlay the queued count with <code>com.intellij.ui.BadgeIconSupplier</code> (or a <code>LayeredIcon</code> + small <code>TextIcon</code>), then <code>toolWindow.setIcon(badged)</code> whenever the queued count changes. <code>status.pending</code> badge = pending notes.</li>
+    <li>Optionally flash the stripe via <code>ToolWindowManager…getToolWindow("Marginalia").activate</code>-free attention by setting the icon — avoid stealing focus.</li>
+  </ul>
+
+  <div class="rule"></div>
+
+  <h2><span class="n">06</span>Status &amp; token reference</h2>
+  <table>
+    <thead><tr><th>Status</th><th>Meaning</th><th>Token</th><th>Where it shows</th></tr></thead>
+    <tbody>
+      <tr><td><span class="dot" style="background:#BA9752"></span><b>Queued</b></td><td>Written, not yet delivered to the agent</td><td><code>status.pending</code></td><td>Pill, accent bar, gutter, “to send”, icon badge</td></tr>
+      <tr><td><span class="dot" style="background:#548AF7"></span><b>Delivered</b></td><td>Agent pulled it via <code>get_pending_comments</code></td><td><code>accent</code></td><td>Pill, accent bar, progress ribbon</td></tr>
+      <tr><td><span class="dot" style="background:#5FAD65"></span><b>Resolved</b></td><td>Addressed &amp; closed</td><td><code>status.resolved</code></td><td>Pill (dimmed bar), progress ribbon</td></tr>
+      <tr><td><span class="dot" style="background:#F75464"></span><b>Failed</b></td><td>Delivery/processing error</td><td><code>status.conflict</code></td><td>Pill + retry action</td></tr>
+    </tbody>
+  </table>
+  <div class="callout"><span class="i">★</span><div><b>Motion (subtle).</b> Animate only state transitions: a comment fading <code>status.pending</code>→<code>accent</code> when delivered, the progress ribbon segment growing on resolve. Use the Platform’s <code>JBAnimator</code> for ~150–200ms ease-outs. No looping or decorative animation — it must feel like the IDE, not a website.</div></div>
+
+  <div class="rule"></div>
+
+  <h2><span class="n">07</span>Both modes &amp; the manifest</h2>
+  <p>Every token resolves to a Light and a Dark value from a single id. The <code>api</code> is the source of truth at runtime; these hexes render the mock and serve as the <code>JBColor</code> fallback. The complete machine-readable table ships as <code>marginalia-tokens.json</code> — the implementing agent reads it instead of eyeballing the design.</p>
+  <table>
+    <thead><tr><th>Token</th><th>Light</th><th>Dark</th></tr></thead>
+    <tbody>
+      <tr><td><code>surface.toolWindow</code></td><td><code>#F7F8FA</code></td><td><code>#2B2D30</code></td></tr>
+      <tr><td><code>surface.editor</code></td><td><code>#FFFFFF</code></td><td><code>#1E1F22</code></td></tr>
+      <tr><td><code>accent</code></td><td><code>#3574F0</code></td><td><code>#548AF7</code></td></tr>
+      <tr><td><code>accent.button</code></td><td><code>#3574F0</code></td><td><code>#3573F0</code></td></tr>
+      <tr><td><code>status.pending</code></td><td><code>#A46704</code></td><td><code>#BA9752</code></td></tr>
+      <tr><td><code>status.resolved</code></td><td><code>#208A3C</code></td><td><code>#5FAD65</code></td></tr>
+      <tr><td><code>status.conflict</code></td><td><code>#E53E4D</code></td><td><code>#F75464</code></td></tr>
+      <tr><td><code>text.primary</code></td><td><code>#1E1F22</code></td><td><code>#DFE1E5</code></td></tr>
+      <tr><td><code>text.muted</code></td><td><code>#818594</code></td><td><code>#6F737A</code></td></tr>
+      <tr><td><code>border</code></td><td><code>#EBECF0</code></td><td><code>#393B40</code></td></tr>
+      <tr><td><code>selection.bg</code></td><td><code>#D5E4FF</code></td><td><code>#2E436E</code></td></tr>
+    </tbody>
+  </table>
+  <pre>{
+  <span class="t">"tokens"</span>: {
+    <span class="t">"status.pending"</span>: { <span class="t">"api"</span>: <span class="s">"JBUI.CurrentTheme.Label.warningForeground()"</span>,
+                        <span class="t">"light"</span>: <span class="s">"#A46704"</span>, <span class="t">"dark"</span>: <span class="s">"#BA9752"</span> }, …
+  },
+  <span class="t">"usages"</span>: [
+    { <span class="t">"element"</span>: <span class="s">"Queued range highlight"</span>, <span class="t">"token"</span>: <span class="s">"status.pending @ 12%"</span> }, …
+  ]
+}</pre>
+  <p class="note">token id → api line → one field in <code>MarginaliaColors</code>. The dereference is mechanical.</p>
+
+  <div class="rule"></div>
+
+  <h2><span class="n">08</span>Build checklist</h2>
+  <ol class="steps">
+    <li>Register tokens via <code>*.themeMetadata.json</code> for light/dark and ship <code>marginalia-tokens.json</code>; bind each <code>api</code> into <code>MarginaliaColors</code>.</li>
+    <li>Swap the panel to <code>SimpleToolWindowPanel</code>; move title/connection/overflow into tool-window header actions.</li>
+    <li>Build the toolbar (<code>Auto-queue</code> toggle, <code>Submit review</code>) and the progress ribbon component.</li>
+    <li>Replace the JTable with a flattened <code>JBList</code> + grouped renderer (file headers + comment cards).</li>
+    <li>Wire jump-to-line via <code>OpenFileDescriptor</code>; add hover jump/more actions.</li>
+    <li>Add the footer status panel with collapsible raw log.</li>
+    <li>Redesign the <code>DialogWrapper</code> with the anchored-snippet context strip; add the optional inline <code>JBPopup</code>.</li>
+    <li>Add gutter highlighters + <code>GutterIconRenderer</code> + <code>EditorTabColorProvider</code> for back-references.</li>
+    <li>Badge the stripe icon from the queued count.</li>
+    <li>Add the subtle state-transition animations last.</li>
+  </ol>
+
+</div>
+</body>
+</html>

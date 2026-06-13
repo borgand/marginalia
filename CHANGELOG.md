@@ -1,7 +1,40 @@
 <!-- Keep a Changelog guide -> https://keepachangelog.com -->
 
-# marginalia Changelog
+# Marginalia Changelog
 
 ## [Unreleased]
+
+## [0.8.0] - 2026-06-13
 ### Added
+- **UI redesign** — a native-Swing refresh built entirely on Platform components:
+  - Role-named design tokens (`MarginaliaColors`) bound to IntelliJ theme keys, so the
+    whole UI follows the user's light/dark theme with no hand-tuning
+  - Rebuilt sidecar (`SimpleToolWindowPanel`): comments **grouped by file** with
+    collapsible headers and a per-file "N to send" count, rendered as status-colored cards
+  - Review-progress ribbon (resolved / delivered / queued), animated on state change
+  - "Connected" chip + a footer status line with the raw connectivity log tucked behind a
+    disclosure toggle
+  - Comment capture redesigned: an inline popup anchored at the line (new default) and a
+    refined modal dialog with the anchored-line context strip; switchable in Settings
+  - In-editor back-references: gutter pen icon, `status.pending @ 12%` line tint,
+    scrollbar error-stripe mark, and a faint tab wash (`EditorTabColorProvider`) for files
+    with open comments
+  - Tool-window stripe icon with a pending-count badge
+- In-editor floating toolbar: a small "Add Marginalia Comment" button appears on text
+  selection (idiomatic `editorFloatingToolbarProvider`), reusing the existing action
+- Tool window "Test agent connectivity" button: reports whether the MCP server is
+  listening, whether an agent has connected, and the last tool call — with guidance
+- Phase 1 core sidecar: anchored comments with persistence, comment queue with
+  auto/manual dispatch, local MCP server (Streamable HTTP, port 4747) with
+  `read_doc` / `apply_edit` / `get_pending_comments` / `resolve_comment` /
+  `list_co_edited_docs`, merge engine with user-wins conflict policy, edit-routing
+  PreToolUse hook + `/marginalia` slash command, tool window with queue and activity log
 - Initial scaffold created from [IntelliJ Platform Plugin Template](https://github.com/JetBrains/intellij-platform-plugin-template)
+
+### Fixed
+- MCP clients (Claude Code) got `HTTP 406` connecting to the server: SDK 0.10.0 doesn't
+  install Ktor ContentNegotiation, so JSON POST responses fell back to an empty-body 406.
+  We now install it with `McpJson`.
+- Floating-toolbar provider read the editor selection on the EDT without a read action,
+  flooding startup with "Read access is allowed from inside read-action only" — the
+  selection check now runs inside `ReadAction.compute`.

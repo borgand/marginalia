@@ -1,45 +1,69 @@
-# marginalia
+# Marginalia
 
 ![Build](https://github.com/borgand/marginalia/workflows/Build/badge.svg)
-[![Version](https://img.shields.io/jetbrains/plugin/v/MARKETPLACE_ID.svg)](https://plugins.jetbrains.com/plugin/MARKETPLACE_ID)
-[![Downloads](https://img.shields.io/jetbrains/plugin/d/MARKETPLACE_ID.svg)](https://plugins.jetbrains.com/plugin/MARKETPLACE_ID)
 
-## Template ToDo list
-- [x] Create a new [IntelliJ Platform Plugin Template][template] project.
-- [ ] Get familiar with the [template documentation][template].
-- [ ] Adjust the [group](./gradle.properties), as well as the [id](./src/main/resources/META-INF/plugin.xml), [name](./src/main/resources/META-INF/plugin.xml), and [sources package](./src/main/kotlin).
-- [ ] Adjust the plugin [description](./src/main/resources/META-INF/plugin.xml) (see [Tips][docs:plugin-description]) and this README to describe what your plugin does.
-- [ ] Review the [Legal Agreements](https://plugins.jetbrains.com/docs/marketplace/legal-agreements.html?from=IJPluginTemplate).
-- [ ] [Publish a plugin manually](https://plugins.jetbrains.com/docs/intellij/publishing-plugin.html?from=IJPluginTemplate) for the first time.
-- [ ] Set the `MARKETPLACE_ID` in the above README badges. You can obtain it once the plugin is published to JetBrains Marketplace.
-- [ ] Set the [Plugin Signing](https://plugins.jetbrains.com/docs/intellij/plugin-signing.html?from=IJPluginTemplate) related [secrets](https://github.com/JetBrains/intellij-platform-plugin-template#environment-variables).
-- [ ] Set the [Deployment Token](https://plugins.jetbrains.com/docs/marketplace/plugin-upload.html?from=IJPluginTemplate).
-- [ ] Click the <kbd>Watch</kbd> button on the top of the [IntelliJ Platform Plugin Template][template] to be notified about releases containing new features and fixes.
+PR-style commenting and live edit merging between you and an AI coding agent, inside
+IntelliJ, with the agent's native UX (Claude Code TUI) left fully intact.
 
-This Fancy IntelliJ Platform Plugin is going to be your implementation of the brilliant ideas that you have.
+Marginalia is a **sidecar to the agent, not a wrapper around it**: you keep running
+Claude Code exactly as today. The plugin hosts a local MCP server that exposes the live
+document and your review comments as tools, and a merge engine that lands the agent's
+edits into the buffer you are typing in — re-positioned around your concurrent edits,
+never clobbering them.
 
-## Installation
+See [docs/main-prd.md](docs/main-prd.md) for the full product requirements and
+[docs/decisions.md](docs/decisions.md) for implementation decisions taken along the way.
 
-- Using the IDE built-in plugin system:
+## How it works
 
-  <kbd>Settings/Preferences</kbd> > <kbd>Plugins</kbd> > <kbd>Marketplace</kbd> > <kbd>Search for "marginalia"</kbd> >
-  <kbd>Install</kbd>
+1. You comment on a text range (`Add Marginalia Comment`, <kbd>Ctrl/Cmd+Alt+M</kbd>).
+   The file becomes *co-edited* and the comment is queued.
+2. The agent pulls comments via the `get_pending_comments` MCP tool (use the shipped
+   `/marginalia` slash command, or just tell it to check).
+3. A PreToolUse hook denies the agent's native `Edit`/`Write` on co-edited files and
+   redirects it to `mcp__marginalia__apply_edit`, which merges hunks into the live
+   buffer. Conflicts with your edits are returned to the agent — **user wins**.
+4. The Marginalia tool window shows the queue, dispatch state, applied hunks, and
+   conflicts. It is not a chat — the agent's own TUI is the chat.
 
-- Using JetBrains Marketplace:
+## Setup
 
-  Go to [JetBrains Marketplace](https://plugins.jetbrains.com/plugin/MARKETPLACE_ID) and install it by clicking the <kbd>Install to ...</kbd> button in case your IDE is running.
+1. Install the plugin (build with `./gradlew buildPlugin`, install the zip from
+   `build/distributions/` via <kbd>Settings</kbd> > <kbd>Plugins</kbd> > <kbd>⚙️</kbd> >
+   <kbd>Install plugin from disk…</kbd>).
+2. Register the MCP server with Claude Code (once):
 
-  You can also download the [latest release](https://plugins.jetbrains.com/plugin/MARKETPLACE_ID/versions) from JetBrains Marketplace and install it manually using
-  <kbd>Settings/Preferences</kbd> > <kbd>Plugins</kbd> > <kbd>⚙️</kbd> > <kbd>Install plugin from disk...</kbd>
+   ```bash
+   claude mcp add --transport http marginalia http://localhost:4747/mcp
+   ```
 
-- Manually:
+3. Run <kbd>Tools</kbd> > <kbd>Marginalia: Install Claude Code Integration</kbd>. This
+   installs (with your confirmation):
+   - `~/.marginalia/marginalia-hook.sh` — the PreToolUse edit-routing hook (requires `jq`)
+   - a `PreToolUse` hook entry in `~/.claude/settings.json`
+   - `~/.claude/commands/marginalia.md` — the `/marginalia` slash command
 
-  Download the [latest release](https://github.com/borgand/marginalia/releases/latest) and install it manually using
-  <kbd>Settings/Preferences</kbd> > <kbd>Plugins</kbd> > <kbd>⚙️</kbd> > <kbd>Install plugin from disk...</kbd>
+## Usage
 
+- **As-I-go review:** select text → <kbd>Ctrl/Cmd+Alt+M</kbd> → type the comment → keep
+  reading. With auto-dispatch on, comments are immediately available to the agent.
+- **Batch review:** toggle auto-dispatch off in the tool window, accumulate comments,
+  then hit *Submit review*.
+- **Direct edits** need no sync step: the agent reads the live buffer via `read_doc`.
+
+## MCP tools
+
+`list_co_edited_docs`, `read_doc`, `apply_edit`, `get_pending_comments`,
+`resolve_comment` — contracts in [docs/main-prd.md §6](docs/main-prd.md).
+
+## Development
+
+- `./gradlew test` — unit + light platform tests
+- `./gradlew verifyPlugin` — plugin structure / API compatibility checks
+- `./gradlew runIde` — sandbox IDE for manual testing
+- `./gradlew buildPlugin` — installable zip in `build/distributions/`
 
 ---
 Plugin based on the [IntelliJ Platform Plugin Template][template].
 
 [template]: https://github.com/JetBrains/intellij-platform-plugin-template
-[docs:plugin-description]: https://plugins.jetbrains.com/docs/intellij/plugin-user-experience.html#plugin-description-and-presentation
