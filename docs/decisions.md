@@ -133,3 +133,21 @@ content per co-edited file; when an external change hits a file with unsaved buf
 platform reload clobber it. If merge machinery fails, the buffer is kept and the event is
 logged loudly in the tool window.
 *Reversal cost: medium.*
+
+## D17 — Phase 2 is MarkEdit-style raw rendering, not WYSIWYG
+Supersedes PRD F9–F13. No JCEF editor / Milkdown / ProseMirror / webview; one shared buffer,
+byte-identical for user and agent (agent coupling preserved trivially). All features are
+decorations over the bundled Markdown plugin PSI. Reference: design spec 2026-06-13.
+*Reversal cost: high (re-opens the whole WYSIWYG design).*
+
+## D18 — Bundled Markdown plugin + platform extension points
+Depend on org.intellij.plugins.markdown; extend via Annotator / FoldingBuilder /
+LineMarkerProvider / ColorSettingsPage / CustomFoldRegion rather than a standalone parser +
+manual markup. Idiomatic, incremental highlighting handled by the platform, colors
+user-customizable via TextAttributesKeys. *Reversal cost: medium.*
+
+## D19 — Mermaid & images via gutter popover; custom-fold for titles/tables/inline-images
+Render engines run on demand inside popups only (Mermaid: bundled mermaid.min.js in a JCEF
+popup; images: ImageIcon popup). Custom-fold rendering (large H1/H2 titles, table grids,
+opt-in off-by-default inline images) is reserved for reading-flow content. Block inlays that
+duplicate source text were rejected. Inline image fold loads off the EDT. *Reversal cost: low (per-feature).*

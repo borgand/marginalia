@@ -4,6 +4,22 @@
 
 ## [Unreleased]
 
+### Added
+- **Phase 2 — MarkEdit-style markdown rendering (native editor).** All features are
+  decorations over the bundled `org.intellij.plugins.markdown` PSI; the raw buffer stays
+  byte-identical for user and agent.
+  - Heading colors (H1–H6 distinct hues), inline emphasis, strikethrough, list-marker
+    color — user-customizable in Settings > Editor > Color Scheme > Marginalia.
+  - Blockquote left-bar accent and horizontal-rule full-width painting.
+  - Structural folding: link `](url)` targets, YAML frontmatter, HTML comments
+    (folded by default; caret or Ctrl+. expands).
+  - Gutter popovers: image preview and on-demand Mermaid diagram rendering (bundled
+    mermaid.min.js in a JCEF popup).
+  - Custom-fold Tier 2: large H1/H2 title glyph, aligned table grid, opt-in inline
+    image fold (off by default).
+  - All features toggle independently in Settings > Tools > Marginalia.
+  - Heading outline navigation via the IDE's built-in Structure view (no extra code).
+
 ## [0.8.0] - 2026-06-13
 ### Added
 - **UI redesign** — a native-Swing refresh built entirely on Platform components:

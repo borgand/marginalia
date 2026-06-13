@@ -25,7 +25,7 @@ Always run `test` and `verifyPlugin` before considering a task done.
 - IntelliJ Platform Gradle Plugin 2.x (`org.jetbrains.intellij.platform`) — the platform is a Gradle dependency; there is no separate SDK.
 - MCP server: official Kotlin SDK `io.modelcontextprotocol:kotlin-sdk`, Streamable HTTP transport on localhost (port configurable, default 4747).
 - Diff: `io.github.java-diff-utils:java-diff-utils` for hunk extraction; IntelliJ `Document` API for application.
-- Phase 2 frontend: Milkdown (ProseMirror) in JCEF; built with Vite into `src/main/resources/webview/`. Keep the web project in `webview/` at repo root with its own `package.json`.
+- Phase 2 markdown rendering: decorations over the bundled `org.intellij.plugins.markdown` PSI via Annotator / FoldingBuilder / LineMarkerProvider / ColorSettingsPage / CustomFoldRegion extension points — native editor, no webview.
 
 ## IntelliJ Platform rules (violating these causes runtime errors)
 
@@ -51,6 +51,18 @@ mcp/
 ui/
   MarginaliaToolWindow — queue view + activity log (NOT a chat)
   CommentGutter/Actions — add/edit/resolve comment actions, editor highlights
+  render/
+    MarkdownStructure         — sole PSI accessor for Markdown elements
+    MarginaliaMarkdownAnnotator + MarginaliaTextAttributes + MarginaliaColorSettingsPage
+                              — heading colors (H1–H6), emphasis, strikethrough, list markers
+    MarginaliaFoldingBuilder  — folds link URLs, frontmatter, HTML comments by default
+    MarkdownLineDecorator     — blockquote left-bar and horizontal-rule painting
+    gutter/ImageLineMarkerProvider + gutter/MermaidLineMarkerProvider
+                              — gutter-icon popovers (image preview; Mermaid via JCEF popup)
+    fold/CustomFoldController + BigTitleFoldRenderer + TableFoldRenderer + ImageFoldRenderer
+                              — Tier-2 CustomFoldRegions: large H1/H2 titles, table grids,
+                                opt-in inline images (off by default)
+    RenderSettings            — per-feature toggles in Settings > Tools > Marginalia
 hooks/
   resources/marginalia-hook.sh — PreToolUse deny script installed into user config
 pty/ (phase 1b)
@@ -65,7 +77,7 @@ Tool contracts (names, schemas, error semantics) are specified in `main-prd.md` 
 - Every MCP tool gets: happy-path test, stale-base-version test, and a concurrent-user-edit test using light fixtures.
 - No new dependencies without noting why in the PR/commit body.
 - Reference docs: IntelliJ Platform SDK docs at https://plugins.jetbrains.com/docs/intellij , MCP Kotlin SDK repo at https://github.com/modelcontextprotocol/kotlin-sdk .
-- When platform APIs are ambiguous, read source from the IntelliJ Community repo rather than guessing — it's on GitHub (`JetBrains/intellij-community`), and the bundled GitHub PR-review plugin there is prior art for inline comment UI (phase 2 reference).
+- When platform APIs are ambiguous, read source from the IntelliJ Community repo rather than guessing — it's on GitHub (`JetBrains/intellij-community`). The bundled GitHub PR-review plugin is prior art for inline comment UI (Phase 1 reference). For Phase 2 rendering patterns, see the bundled `org.intellij.plugins.markdown` plugin source.
 
 ## Things explicitly out of scope (do not build)
 

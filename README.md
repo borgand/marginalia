@@ -51,6 +51,32 @@ See [docs/main-prd.md](docs/main-prd.md) for the full product requirements and
   then hit *Submit review*.
 - **Direct edits** need no sync step: the agent reads the live buffer via `read_doc`.
 
+## Markdown rendering
+
+For `.md` files Marginalia layers MarkEdit-style visual enhancements directly on the native
+editor — no separate editor pane, no webview. The raw source stays byte-identical for both
+you and the agent; all rendering is ephemeral decoration.
+
+**Tier 1 (on by default):**
+- Styled headings (distinct color per H1–H6), bold/italic emphasis, strikethrough, colored
+  list markers — all recolorable in **Settings > Editor > Color Scheme > Marginalia**.
+- Blockquote left-bar accent and horizontal-rule full-width line painting.
+- Folded link `](url)` targets, YAML frontmatter, and HTML comments (caret or Ctrl+. expands).
+- Gutter icons for images (preview popup) and Mermaid diagrams (rendered on demand via a
+  JCEF popup with bundled mermaid.min.js).
+
+**Tier 2 (on by default for titles and tables; opt-in for inline images):**
+- Large H1/H2 custom fold glyph for a reading-flow view.
+- Aligned table grid rendered in the fold region.
+- Opt-in inline image fold (off by default).
+
+**Heading outline / navigation:** provided by the IDE's built-in Structure view
+(View → Tool Windows → Structure, or Cmd+7 / Ctrl+F12) — the bundled Markdown plugin
+renders the heading tree with no extra code. *Final visual confirmation is a manual check
+(`./gradlew runIde`).*
+
+All Tier 1 and Tier 2 features toggle independently in **Settings > Tools > Marginalia**.
+
 ## MCP tools
 
 `list_co_edited_docs`, `read_doc`, `apply_edit`, `get_pending_comments`,

@@ -107,21 +107,45 @@ mechanism. (Same core; native editor UI instead of webview.)
 user can type in the same file and add two more comments; nothing is lost, agent hunks
 land correctly re-positioned, and both new comments dispatch on idle.
 
-### Phase 2 — WYSIWYG markdown editor
+### Phase 2 — Enhanced raw-markdown rendering (native editor)
 
-- **F9. JCEF FileEditor** registered for `.md` (alongside default editors, like the
-  shuzijun plugin's tab arrangement; its shell is the architectural reference —
-  FileEditor registration, JCEF wiring, theme bridge).
-- **F10. Milkdown** (ProseMirror) as the editor: Typora-like rendered headings,
-  IDE-theme-aware styling, **@milkdown/plugin-diagram for inline Mermaid rendering**
-  (architecture docs requirement).
-- **F11. Comments as ProseMirror decorations**, mapped through transactions; same
-  CommentStore underneath (anchor representation gains a PM-position variant).
-- **F12. Merge into the live PM doc** as transactions (markdown hunks → PM steps),
-  user's cursor/selection untouched. The IntelliJ Document stays canonical and synced;
-  beware Milkdown/remark markdown normalization producing noise diffs — normalize the
-  base snapshot through the same serializer before diffing.
-- **F13. Outline pane** from the doc heading tree (Milkdown or reuse IDE Structure view).
+No WYSIWYG editor, no JCEF editor pane, no Milkdown/ProseMirror, no webview. One shared
+buffer — byte-identical for user and agent — with visual richness delivered entirely as
+decorations over the bundled `org.intellij.plugins.markdown` PSI via platform extension
+points. Design spec: `docs/superpowers/specs/2026-06-13-phase2-markdown-rendering-design.md`.
+
+**Tier 1 — Annotator / FoldingBuilder / LineMarkerProvider (on by default):**
+
+- **F9. Heading color hierarchy.** `MarginaliaMarkdownAnnotator` applies
+  `TextAttributesKey`s for H1–H6 (distinct hue per level), inline emphasis (bold, italic,
+  strikethrough dimming), and list-marker color. Colors user-customizable via
+  Settings > Editor > Color Scheme > Marginalia (`MarginaliaColorSettingsPage`).
+- **F10. Structural folding.** `MarginaliaFoldingBuilder` folds link `](url)` targets,
+  YAML frontmatter blocks, and HTML comments by default; caret enters / Ctrl+. expands.
+- **F11. Line painting.** `MarkdownLineDecorator` (EditorLinePainter) draws a left-bar
+  accent on blockquote lines and a full-width rule on `---`/`***` separator lines.
+- **F12. Gutter popovers.** `ImageLineMarkerProvider` shows an image preview popup on
+  demand from the gutter icon; `MermaidLineMarkerProvider` renders the diagram via the
+  bundled `mermaid.min.js` in a lightweight JCEF popup (on demand only — no always-on
+  render loop). All Tier 1 features toggle independently in Settings > Tools > Marginalia
+  (`RenderSettings`).
+
+**Tier 2 — CustomFoldRegion rendering (off by default for inline image; on for titles/tables):**
+
+- **F13. Big-title custom folds.** `BigTitleFoldRenderer` collapses H1/H2 source into a
+  large, styled glyph in the editor fold region (reading-flow enhancement).
+  `TableFoldRenderer` renders pipe-table source as aligned text in a custom fold.
+  `ImageFoldRenderer` optionally collapses `![…](…)` into an inline image preview
+  (off by default; toggle in Settings).
+  `CustomFoldController` manages lifecycle.
+
+**Outline (F13 structural navigation):** provided by the bundled Markdown plugin's native
+Structure view (View → Tool Windows → Structure, or Cmd+7 / Ctrl+F12) — displays the
+heading tree for any `.md` file with zero additional code. Final visual confirmation
+is a manual check: run `./gradlew runIde` and verify the Structure view shows headings.
+
+**Agent coupling:** the IntelliJ `Document` remains canonical and byte-identical between
+user and agent; decorations are ephemeral. No normalization noise, no extra sync surface.
 
 ### Phase 3 (optional, only if a real need emerges)
 
@@ -133,8 +157,8 @@ land correctly re-positioned, and both new comments dispatch on idle.
 
 - No chat UI, no rendering of agent thinking/streams (the agent's own TUI does this).
 - No multi-human collaboration, no cloud.
-- No attempt to make raw-source MD visually rich beyond IDE color schemes (platform
-  can't resize fonts per-token; Phase 2 is the answer to readability).
+- No attempt to replace the native editor with a WYSIWYG surface — Phase 2 enhances
+  raw-source readability via decorations, not a separate editor pane.
 
 ## 6. MCP tool contracts (public API — implement exactly)
 
@@ -177,8 +201,8 @@ agent to call this per comment after editing.
 
 - **PTY injection brittleness** (TUI redraws, busy states): idle detection from PTY
   output quiescence + the slash-command pull fallback (F8).
-- **Markdown normalization noise** in Phase 2 diffs: serialize base through the same
-  remark pipeline before diffing (F12).
+- **Markdown normalization noise** (not a concern for Phase 2): the native editor keeps the
+  buffer byte-identical; no remark/serializer pipeline is involved.
 - **RangeMarker invalidation** on large agent rewrites: snippet+heading-path fuzzy
   re-anchor; orphaned comments surface in the tool window rather than vanish.
 - **MCP server lifetime/port clashes**: one server per IDE instance, port from settings,
@@ -194,5 +218,9 @@ agent to call this per comment after editing.
 2. **M2:** `apply_edit` + merge engine + tests (incl. concurrent-typing test); hook
    script + active-docs registry; F6 fallback. *Phase 1 acceptance test passes.*
 3. **M3:** PTY auto-dispatch + slash command; resolve flow; comment persistence. Daily-driver ready for code + raw MD.
-4. **M4:** JCEF/Milkdown editor with rendered headings + Mermaid, read-only comments overlay.
-5. **M5:** Full Phase 2 — decorations, in-webview commenting, merge-as-transactions, outline.
+4. **M4:** Tier 1 rendering — heading/emphasis/list-marker color attributes, blockquote bar,
+   horizontal rule, structural folding (link URLs, frontmatter, HTML comments), image and
+   Mermaid gutter popovers. All Tier 1 features toggle in `RenderSettings`.
+5. **M5:** Tier 2 custom folds — large H1/H2 title glyph, aligned table grid, opt-in
+   inline image fold (off by default). Design spec:
+   `docs/superpowers/specs/2026-06-13-phase2-markdown-rendering-design.md`.
