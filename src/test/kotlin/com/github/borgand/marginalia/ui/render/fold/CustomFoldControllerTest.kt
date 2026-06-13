@@ -48,4 +48,19 @@ class CustomFoldControllerTest : BasePlatformTestCase() {
             .filterIsInstance<com.intellij.openapi.editor.CustomFoldRegion>()
         assertTrue("expected at least one custom fold (the table)", custom.isNotEmpty())
     }
+
+    fun `test inline image fold only when enabled`() {
+        myFixture.configureByText("doc.md", "text\n\n![a](https://example.com/a.png)\n\nmore\n")
+        val editor = myFixture.editor
+        editor.caretModel.moveToOffset(0)
+        val settings = com.github.borgand.marginalia.ui.render.RenderSettings.getInstance()
+        settings.inlineImages = false
+        project.service<CustomFoldController>().refresh(editor)
+        val before = editor.foldingModel.allFoldRegions.filterIsInstance<com.intellij.openapi.editor.CustomFoldRegion>().size
+        settings.inlineImages = true
+        project.service<CustomFoldController>().refresh(editor)
+        val after = editor.foldingModel.allFoldRegions.filterIsInstance<com.intellij.openapi.editor.CustomFoldRegion>().size
+        settings.inlineImages = false
+        assertTrue("enabling inlineImages should add a fold (before=$before after=$after)", after > before)
+    }
 }

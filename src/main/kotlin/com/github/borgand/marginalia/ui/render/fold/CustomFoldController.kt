@@ -32,6 +32,7 @@ class CustomFoldController(private val project: Project) {
         val caretLine = doc.getLineNumber(editor.caretModel.offset)
         val headings = MarkdownStructure.headings(file)
         val tables = MarkdownStructure.tables(file)
+        val images = MarkdownStructure.images(file)
 
         folding.runBatchFoldingOperation {
             editor.foldingModel.allFoldRegions
@@ -58,6 +59,16 @@ class CustomFoldController(private val project: Project) {
                     if (caretLine in startLine..endLine) continue
                     if (t.rows.isEmpty()) continue
                     val region = folding.addCustomLinesFolding(startLine, endLine, TableFoldRenderer(t.rows)) ?: continue
+                    region.putUserData(TAG, true)
+                }
+            }
+
+            if (RenderSettings.getInstance().inlineImages) {
+                for (img in images) {
+                    val startLine = doc.getLineNumber(img.lineRange.startOffset)
+                    val endLine = doc.getLineNumber(img.lineRange.endOffset.coerceIn(0, (doc.textLength - 1).coerceAtLeast(0)))
+                    if (caretLine in startLine..endLine) continue
+                    val region = folding.addCustomLinesFolding(startLine, endLine, ImageFoldRenderer(img.url)) ?: continue
                     region.putUserData(TAG, true)
                 }
             }
