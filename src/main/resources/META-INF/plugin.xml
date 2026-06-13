@@ -35,6 +35,7 @@
             implementation="com.github.borgand.marginalia.ui.editor.MarginaliaTabColorProvider"/>
         <colorSettingsPage implementation="com.github.borgand.marginalia.ui.render.MarginaliaColorSettingsPage"/>
         <projectService serviceImplementation="com.github.borgand.marginalia.ui.render.MarkdownLineDecorator"/>
+        <projectService serviceImplementation="com.github.borgand.marginalia.ui.render.fold.CustomFoldController"/>
         <annotator language="Markdown" implementationClass="com.github.borgand.marginalia.ui.render.MarginaliaMarkdownAnnotator"/>
         <lang.foldingBuilder language="Markdown" implementationClass="com.github.borgand.marginalia.ui.render.MarginaliaFoldingBuilder"/>
         <codeInsight.lineMarkerProvider language="Markdown" implementationClass="com.github.borgand.marginalia.ui.render.gutter.ImageLineMarkerProvider"/>

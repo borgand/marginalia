@@ -117,6 +117,9 @@ class MarginaliaFileOpenListener : FileEditorManagerListener {
                 val decorator = project.service<com.github.borgand.marginalia.ui.render.MarkdownLineDecorator>()
                 decorator.refresh(te.editor)
                 com.github.borgand.marginalia.ui.render.MarkdownLineDecorator.attachDocumentListener(project, te.editor, te)
+                val foldController = project.service<com.github.borgand.marginalia.ui.render.fold.CustomFoldController>()
+                foldController.refresh(te.editor)
+                com.github.borgand.marginalia.ui.render.fold.CustomFoldController.attachListeners(project, te.editor, te)
             }
         }
     }
