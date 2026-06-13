@@ -22,4 +22,17 @@ class CustomFoldControllerTest : BasePlatformTestCase() {
         val custom = editor.foldingModel.allFoldRegions.filterIsInstance<com.intellij.openapi.editor.CustomFoldRegion>()
         assertEquals(0, custom.size)
     }
+
+    fun `test table gets a custom fold when caret away`() {
+        myFixture.configureByText(
+            "doc.md",
+            "intro\n\n| a | b |\n|---|---|\n| 1 | 2 |\n\noutro\n",
+        )
+        val editor = myFixture.editor
+        editor.caretModel.moveToOffset(editor.document.text.indexOf("outro"))
+        project.service<CustomFoldController>().refresh(editor)
+        val custom = editor.foldingModel.allFoldRegions
+            .filterIsInstance<com.intellij.openapi.editor.CustomFoldRegion>()
+        assertTrue("expected at least one custom fold (the table)", custom.isNotEmpty())
+    }
 }

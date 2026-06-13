@@ -21,6 +21,7 @@ data class HorizontalRuleSpan(val lineRange: TextRange)
 data class BlockquoteSpan(val range: TextRange)
 data class ListMarkerSpan(val markerRange: TextRange, val ordered: Boolean)
 data class TaskItemSpan(val checkboxCharRange: TextRange, val checked: Boolean)
+data class TableSpan(val range: TextRange, val rows: List<List<String>>)
 
 object MarkdownStructure {
 
@@ -165,6 +166,39 @@ object MarkdownStructure {
                 checkboxCharRange = TextRange(inner.first, inner.last + 1),
                 checked = !m.groupValues[1].isBlank(),
             )
+        }
+        return out
+    }
+
+    fun tables(file: PsiFile): List<TableSpan> {
+        val out = mutableListOf<TableSpan>()
+        val text = file.text
+        val lines = text.split("\n")
+        // precompute the start offset of each line
+        val lineStarts = IntArray(lines.size)
+        var acc = 0
+        for (idx in lines.indices) { lineStarts[idx] = acc; acc += lines[idx].length + 1 }
+
+        val sepRegex = Regex("""\s*\|?[\s:|-]*-[\s:|-]*\|?\s*""")
+        var i = 0
+        while (i < lines.size) {
+            val isHeader = lines[i].contains("|")
+            val hasSep = i + 1 < lines.size && lines[i + 1].contains("-") && lines[i + 1].matches(sepRegex)
+            if (isHeader && hasSep) {
+                var j = i
+                val rows = mutableListOf<List<String>>()
+                while (j < lines.size && lines[j].contains("|")) {
+                    if (j != i + 1) rows += lines[j].trim().trim('|').split("|").map { it.trim() }
+                    j++
+                }
+                val startOffset = lineStarts[i]
+                val lastLine = j - 1
+                val endOffset = (lineStarts[lastLine] + lines[lastLine].length).coerceAtMost(text.length)
+                out += TableSpan(TextRange(startOffset, endOffset), rows)
+                i = j
+            } else {
+                i++
+            }
         }
         return out
     }

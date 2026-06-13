@@ -25,13 +25,13 @@ import com.intellij.psi.PsiDocumentManager
 class CustomFoldController(private val project: Project) {
 
     fun refresh(editor: Editor) {
-        if (!RenderSettings.getInstance().bigTitles) return
         val folding = editor.foldingModel as? FoldingModelEx ?: return
         val file = PsiDocumentManager.getInstance(project).getPsiFile(editor.document) ?: return
         if (!file.name.endsWith(".md", ignoreCase = true)) return
         val doc = editor.document
         val caretLine = doc.getLineNumber(editor.caretModel.offset)
         val headings = MarkdownStructure.headings(file)
+        val tables = MarkdownStructure.tables(file)
 
         folding.runBatchFoldingOperation {
             editor.foldingModel.allFoldRegions
@@ -39,14 +39,27 @@ class CustomFoldController(private val project: Project) {
                 .filter { it.getUserData(TAG) == true }
                 .forEach { folding.removeFoldRegion(it) }
 
-            for (h in headings) {
-                if (h.level > 2) continue
-                val startLine = doc.getLineNumber(h.fullRange.startOffset)
-                val endLine = doc.getLineNumber(h.fullRange.endOffset.coerceIn(0, (doc.textLength - 1).coerceAtLeast(0)))
-                if (caretLine in startLine..endLine) continue
-                val title = doc.getText(h.contentRange).trim()
-                val region = folding.addCustomLinesFolding(startLine, endLine, BigTitleFoldRenderer(title, h.level)) ?: continue
-                region.putUserData(TAG, true)
+            if (RenderSettings.getInstance().bigTitles) {
+                for (h in headings) {
+                    if (h.level > 2) continue
+                    val startLine = doc.getLineNumber(h.fullRange.startOffset)
+                    val endLine = doc.getLineNumber(h.fullRange.endOffset.coerceIn(0, (doc.textLength - 1).coerceAtLeast(0)))
+                    if (caretLine in startLine..endLine) continue
+                    val title = doc.getText(h.contentRange).trim()
+                    val region = folding.addCustomLinesFolding(startLine, endLine, BigTitleFoldRenderer(title, h.level)) ?: continue
+                    region.putUserData(TAG, true)
+                }
+            }
+
+            if (RenderSettings.getInstance().renderTables) {
+                for (t in tables) {
+                    val startLine = doc.getLineNumber(t.range.startOffset)
+                    val endLine = doc.getLineNumber(t.range.endOffset.coerceIn(0, (doc.textLength - 1).coerceAtLeast(0)))
+                    if (caretLine in startLine..endLine) continue
+                    if (t.rows.isEmpty()) continue
+                    val region = folding.addCustomLinesFolding(startLine, endLine, TableFoldRenderer(t.rows)) ?: continue
+                    region.putUserData(TAG, true)
+                }
             }
         }
     }
