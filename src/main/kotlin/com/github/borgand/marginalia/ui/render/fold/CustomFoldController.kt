@@ -31,6 +31,7 @@ class CustomFoldController(private val project: Project) {
         if (!file.name.endsWith(".md", ignoreCase = true)) return
         val doc = editor.document
         val caretLine = doc.getLineNumber(editor.caretModel.offset)
+        val headings = MarkdownStructure.headings(file)
 
         folding.runBatchFoldingOperation {
             editor.foldingModel.allFoldRegions
@@ -38,7 +39,7 @@ class CustomFoldController(private val project: Project) {
                 .filter { it.getUserData(TAG) == true }
                 .forEach { folding.removeFoldRegion(it) }
 
-            for (h in MarkdownStructure.headings(file)) {
+            for (h in headings) {
                 if (h.level > 2) continue
                 val startLine = doc.getLineNumber(h.fullRange.startOffset)
                 val endLine = doc.getLineNumber(h.fullRange.endOffset.coerceIn(0, (doc.textLength - 1).coerceAtLeast(0)))

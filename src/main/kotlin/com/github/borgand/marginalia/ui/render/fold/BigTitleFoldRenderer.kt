@@ -12,9 +12,11 @@ import java.awt.geom.Rectangle2D
 /** Paints a single heading line as large bold text. Unfolds to source when caret enters. */
 class BigTitleFoldRenderer(private val text: String, private val level: Int) : CustomFoldRegionRenderer {
 
+    private var cachedFont: java.awt.Font? = null
     private fun scaledFont(base: Font): Font {
+        cachedFont?.let { return it }
         val factor = if (level == 1) 1.9f else 1.5f
-        return base.deriveFont(Font.BOLD, base.size * factor)
+        return base.deriveFont(Font.BOLD, base.size * factor).also { cachedFont = it }
     }
 
     override fun calcWidthInPixels(region: CustomFoldRegion): Int {
