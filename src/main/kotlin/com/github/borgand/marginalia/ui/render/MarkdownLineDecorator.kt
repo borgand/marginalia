@@ -11,6 +11,7 @@ import com.intellij.openapi.editor.markup.HighlighterLayer
 import com.intellij.openapi.editor.markup.HighlighterTargetArea
 import com.intellij.openapi.editor.markup.RangeHighlighter
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.Disposable
 import com.intellij.openapi.util.Key
 import com.intellij.psi.PsiDocumentManager
 import com.intellij.ui.JBColor
@@ -78,7 +79,7 @@ class MarkdownLineDecorator(private val project: Project) {
         private val ATTACHED = Key.create<Boolean>("marginalia.line.decoration.listener")
 
         /** Debounced refresh on edits, disposed with the editor. Idempotent per editor. */
-        fun attachDocumentListener(project: Project, editor: Editor) {
+        fun attachDocumentListener(project: Project, editor: Editor, parentDisposable: Disposable) {
             if (editor.getUserData(ATTACHED) == true) return
             editor.putUserData(ATTACHED, true)
             editor.document.addDocumentListener(object : DocumentListener {
@@ -91,7 +92,7 @@ class MarkdownLineDecorator(private val project: Project) {
                         }
                     }, { project.isDisposed })
                 }
-            })
+            }, parentDisposable)
         }
     }
 }
