@@ -37,6 +37,8 @@
         <projectService serviceImplementation="com.github.borgand.marginalia.ui.render.MarkdownLineDecorator"/>
         <annotator language="Markdown" implementationClass="com.github.borgand.marginalia.ui.render.MarginaliaMarkdownAnnotator"/>
         <lang.foldingBuilder language="Markdown" implementationClass="com.github.borgand.marginalia.ui.render.MarginaliaFoldingBuilder"/>
+        <codeInsight.lineMarkerProvider language="Markdown" implementationClass="com.github.borgand.marginalia.ui.render.gutter.ImageLineMarkerProvider"/>
+        <codeInsight.lineMarkerProvider language="Markdown" implementationClass="com.github.borgand.marginalia.ui.render.gutter.MermaidLineMarkerProvider"/>
     </extensions>
 
     <applicationListeners>
