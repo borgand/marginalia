@@ -32,6 +32,7 @@
             implementation="com.github.borgand.marginalia.ui.MarginaliaFloatingToolbarProvider"/>
         <editorTabColorProvider
             implementation="com.github.borgand.marginalia.ui.editor.MarginaliaTabColorProvider"/>
+        <colorSettingsPage implementation="com.github.borgand.marginalia.ui.render.MarginaliaColorSettingsPage"/>
     </extensions>
 
     <applicationListeners>
