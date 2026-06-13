@@ -1,5 +1,6 @@
 package com.github.borgand.marginalia.ui.render.fold
 
+import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.editor.CustomFoldRegion
 import com.intellij.openapi.editor.CustomFoldRegionRenderer
 import com.intellij.openapi.editor.markup.TextAttributes
@@ -13,9 +14,18 @@ import javax.swing.ImageIcon
 /** Paints an inline image (off by default; opt-in). Best-effort load; placeholder on failure. */
 class ImageFoldRenderer(url: String) : CustomFoldRegionRenderer {
 
-    private val image: Image? = runCatching {
-        if (url.startsWith("http")) ImageIcon(URI(url).toURL()).image else ImageIcon(url).image
-    }.getOrNull()
+    @Volatile private var image: Image? = null
+
+    init {
+        if (url.isNotEmpty()) {
+            ApplicationManager.getApplication().executeOnPooledThread {
+                val img = runCatching {
+                    if (url.startsWith("http")) ImageIcon(URI(url).toURL()).image else ImageIcon(url).image
+                }.getOrNull()
+                image = img
+            }
+        }
+    }
 
     private val maxH = JBUI.scale(240)
 
@@ -23,7 +33,7 @@ class ImageFoldRenderer(url: String) : CustomFoldRegionRenderer {
         val img = image
         val w = img?.getWidth(null) ?: -1
         val h = img?.getHeight(null) ?: -1
-        if (img == null || w <= 0 || h <= 0) return JBUI.scale(120) to JBUI.scale(20) // placeholder
+        if (img == null || w <= 0 || h <= 0) return JBUI.scale(120) to JBUI.scale(20) // placeholder until loaded
         if (h <= maxH) return w to h
         val scale = maxH.toDouble() / h
         return (w * scale).toInt().coerceAtLeast(1) to maxH

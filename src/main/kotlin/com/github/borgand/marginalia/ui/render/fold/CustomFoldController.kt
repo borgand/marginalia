@@ -76,7 +76,7 @@ class CustomFoldController(private val project: Project) {
     }
 
     companion object {
-        private val TAG = Key.create<Boolean>("marginalia.bigtitle.fold")
+        private val TAG = Key.create<Boolean>("marginalia.custom.fold")
         private val ATTACHED = Key.create<Boolean>("marginalia.bigtitle.listener")
 
         /** Refresh on caret move + document change, tied to [parentDisposable] (the TextEditor). */
