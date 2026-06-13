@@ -35,6 +35,7 @@
             implementation="com.github.borgand.marginalia.ui.editor.MarginaliaTabColorProvider"/>
         <colorSettingsPage implementation="com.github.borgand.marginalia.ui.render.MarginaliaColorSettingsPage"/>
         <annotator language="Markdown" implementationClass="com.github.borgand.marginalia.ui.render.MarginaliaMarkdownAnnotator"/>
+        <lang.foldingBuilder language="Markdown" implementationClass="com.github.borgand.marginalia.ui.render.MarginaliaFoldingBuilder"/>
     </extensions>
 
     <applicationListeners>
