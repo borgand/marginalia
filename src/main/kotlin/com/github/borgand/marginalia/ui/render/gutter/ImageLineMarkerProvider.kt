@@ -3,10 +3,10 @@ package com.github.borgand.marginalia.ui.render.gutter
 import com.github.borgand.marginalia.ui.render.MarkdownStructure
 import com.intellij.codeInsight.daemon.LineMarkerInfo
 import com.intellij.codeInsight.daemon.LineMarkerProvider
+import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.editor.markup.GutterIconRenderer
 import com.intellij.openapi.ui.popup.JBPopupFactory
 import com.intellij.psi.PsiElement
-import com.intellij.psi.PsiFile
 import java.net.URI
 import javax.swing.Icon
 import javax.swing.ImageIcon
@@ -33,16 +33,20 @@ class ImageLineMarkerProvider : LineMarkerProvider {
     }
 
     private fun showImage(url: String) {
-        val icon: Icon = try {
-            if (url.startsWith("http")) ImageIcon(URI(url).toURL()) else ImageIcon(url)
-        } catch (e: Exception) {
-            return
+        ApplicationManager.getApplication().executeOnPooledThread {
+            val icon: Icon = try {
+                if (url.startsWith("http")) ImageIcon(URI(url).toURL()) else ImageIcon(url)
+            } catch (e: Exception) {
+                return@executeOnPooledThread
+            }
+            ApplicationManager.getApplication().invokeLater {
+                val label = JLabel(icon)
+                JBPopupFactory.getInstance()
+                    .createComponentPopupBuilder(label, label)
+                    .setResizable(true).setMovable(true).setRequestFocus(true)
+                    .createPopup()
+                    .showInFocusCenter()
+            }
         }
-        val label = JLabel(icon)
-        JBPopupFactory.getInstance()
-            .createComponentPopupBuilder(label, label)
-            .setResizable(true).setMovable(true).setRequestFocus(true)
-            .createPopup()
-            .showInFocusCenter()
     }
 }

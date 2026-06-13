@@ -3,8 +3,10 @@ package com.github.borgand.marginalia.ui.render.gutter
 import com.github.borgand.marginalia.ui.render.MarkdownStructure
 import com.intellij.codeInsight.daemon.LineMarkerInfo
 import com.intellij.codeInsight.daemon.LineMarkerProvider
+import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.editor.markup.GutterIconRenderer
 import com.intellij.openapi.ui.popup.JBPopupFactory
+import com.intellij.openapi.util.Disposer
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.intellij.ui.jcef.JBCefApp
@@ -38,16 +40,21 @@ class MermaidLineMarkerProvider : LineMarkerProvider {
         browser.loadHTML(html(code))
         val panel = browser.component
         panel.preferredSize = Dimension(JBUI.scale(600), JBUI.scale(420))
-        JBPopupFactory.getInstance()
+        val popup = JBPopupFactory.getInstance()
             .createComponentPopupBuilder(panel, panel)
             .setResizable(true).setMovable(true).setRequestFocus(true)
             .setTitle("Mermaid")
             .createPopup()
-            .showInFocusCenter()
+        Disposer.register(popup, browser)
+        popup.showInFocusCenter()
     }
 
     private fun mermaidJs(): String =
-        javaClass.getResource("/render/mermaid.min.js")!!.readText()
+        javaClass.getResource("/render/mermaid.min.js")?.readText() ?: run {
+            Logger.getInstance(MermaidLineMarkerProvider::class.java)
+                .warn("mermaid.min.js resource missing from plugin jar")
+            ""
+        }
 
     private fun html(code: String): String = """
         <!doctype html><html><head><meta charset="utf-8">
