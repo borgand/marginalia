@@ -4,6 +4,8 @@
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-06-13
+
 ### Added
 - **Phase 2 — MarkEdit-style markdown rendering (native editor).** All features are
   decorations over the bundled `org.intellij.plugins.markdown` PSI; the raw buffer stays
