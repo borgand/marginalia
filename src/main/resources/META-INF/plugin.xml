@@ -20,6 +20,7 @@
     <depends>org.intellij.plugins.markdown</depends>
 
     <extensions defaultExtensionNs="com.intellij">
+        <applicationService serviceImplementation="com.github.borgand.marginalia.ui.render.RenderSettings"/>
         <postStartupActivity implementation="com.github.borgand.marginalia.startup.MarginaliaStartupActivity"/>
         <notificationGroup id="Marginalia" displayType="BALLOON"/>
         <toolWindow id="Marginalia" anchor="right" icon="/icons/marginalia.svg"
