@@ -43,13 +43,22 @@ object MarkdownStructure {
 
     fun emphasis(file: PsiFile): List<EmphasisSpan> {
         val out = mutableListOf<EmphasisSpan>()
+        // Track ranges already emitted as BOLD_ITALIC so the inner node is suppressed.
+        val boldItalicRanges = mutableSetOf<TextRange>()
         file.accept(object : PsiRecursiveElementVisitor() {
             override fun visitElement(element: PsiElement) {
-                when (element.node?.elementType) {
-                    MarkdownElementTypes.STRONG ->
-                        out += EmphasisSpan(emphasisKindOf(element) ?: EmphasisKind.BOLD, element.textRange)
-                    MarkdownElementTypes.EMPH ->
-                        out += EmphasisSpan(EmphasisKind.ITALIC, element.textRange)
+                val type = element.node?.elementType
+                when (type) {
+                    MarkdownElementTypes.STRONG, MarkdownElementTypes.EMPH -> {
+                        if (element.textRange !in boldItalicRanges) {
+                            val kind = emphasisKindOf(element)
+                            out += EmphasisSpan(kind, element.textRange)
+                            if (kind == EmphasisKind.BOLD_ITALIC) {
+                                // Suppress the inner EMPH or STRONG from producing its own span.
+                                boldItalicRanges += innerEmphasisRange(element)
+                            }
+                        }
+                    }
                     MarkdownElementTypes.STRIKETHROUGH ->
                         out += EmphasisSpan(EmphasisKind.STRIKETHROUGH, element.textRange)
                 }
@@ -59,10 +68,47 @@ object MarkdownStructure {
         return out
     }
 
-    private fun emphasisKindOf(strong: PsiElement): EmphasisKind? {
-        val parentIsEmph = PsiTreeUtil.getParentOfType(strong, PsiElement::class.java)
-            ?.let { it.node?.elementType == MarkdownElementTypes.EMPH } == true
-        return if (parentIsEmph) EmphasisKind.BOLD_ITALIC else EmphasisKind.BOLD
+    /** Returns the text range of the nested EMPH or STRONG child element (to suppress double-emission). */
+    private fun innerEmphasisRange(outer: PsiElement): TextRange {
+        var child = outer.firstChild
+        while (child != null) {
+            val t = child.node?.elementType
+            if (t == MarkdownElementTypes.EMPH || t == MarkdownElementTypes.STRONG) return child.textRange
+            child = child.nextSibling
+        }
+        return outer.textRange // fallback: suppress entire range
+    }
+
+    /** Returns BOLD_ITALIC when a STRONG and EMPH are nested in either order; BOLD for plain STRONG; ITALIC for plain EMPH. */
+    private fun emphasisKindOf(element: PsiElement): EmphasisKind {
+        val type = element.node?.elementType
+        val parentType = element.parent?.node?.elementType
+
+        return when {
+            // Parent-based detection: inner node whose direct parent is the complementary type
+            type == MarkdownElementTypes.STRONG && parentType == MarkdownElementTypes.EMPH ->
+                EmphasisKind.BOLD_ITALIC
+            type == MarkdownElementTypes.EMPH && parentType == MarkdownElementTypes.STRONG ->
+                EmphasisKind.BOLD_ITALIC
+            // Child-based detection: outer node that directly contains the complementary type
+            // (iterate all children — getChildOfType only returns the first child which may be a token leaf)
+            type == MarkdownElementTypes.STRONG && hasDirectChild(element, MarkdownElementTypes.EMPH) ->
+                EmphasisKind.BOLD_ITALIC
+            type == MarkdownElementTypes.EMPH && hasDirectChild(element, MarkdownElementTypes.STRONG) ->
+                EmphasisKind.BOLD_ITALIC
+            type == MarkdownElementTypes.STRONG -> EmphasisKind.BOLD
+            else -> EmphasisKind.ITALIC
+        }
+    }
+
+    /** Returns true if [parent] has a direct child (not grandchild) with the given element type. */
+    private fun hasDirectChild(parent: PsiElement, type: com.intellij.psi.tree.IElementType): Boolean {
+        var child = parent.firstChild
+        while (child != null) {
+            if (child.node?.elementType == type) return true
+            child = child.nextSibling
+        }
+        return false
     }
 
     fun links(file: PsiFile): List<LinkSpan> {
@@ -125,7 +171,8 @@ object MarkdownStructure {
 
     private fun fenceContent(fence: MarkdownCodeFence): String =
         fence.text.lineSequence().drop(1).toMutableList().also { lines ->
-            if (lines.isNotEmpty() && lines.last().trimStart().startsWith("```")) lines.removeAt(lines.size - 1)
+            if (lines.isNotEmpty() && lines.last().trimStart().let { it.startsWith("```") || it.startsWith("~~~") })
+                lines.removeAt(lines.size - 1)
         }.joinToString("\n")
 
     private fun collectByType(file: PsiFile, type: com.intellij.psi.tree.IElementType): List<PsiElement> {

@@ -17,11 +17,25 @@ class MarkdownStructureTest : BasePlatformTestCase() {
     }
 
     fun `test emphasis kinds`() {
-        val file = parse("a **bold** b *italic* c ~~strike~~ d")
-        val kinds = MarkdownStructure.emphasis(file).map { it.kind }.toSet()
-        assertTrue(EmphasisKind.BOLD in kinds)
-        assertTrue(EmphasisKind.ITALIC in kinds)
-        assertTrue(EmphasisKind.STRIKETHROUGH in kinds)
+        val src = "a **bold** b *italic* c ~~strike~~ d"
+        val file = parse(src)
+        val spans = MarkdownStructure.emphasis(file)
+        val byKind = spans.associateBy { it.kind }
+        assertTrue("expected BOLD", EmphasisKind.BOLD in byKind)
+        assertTrue("expected ITALIC", EmphasisKind.ITALIC in byKind)
+        assertTrue("expected STRIKETHROUGH", EmphasisKind.STRIKETHROUGH in byKind)
+        assertEquals("**bold**", file.text.substring(byKind[EmphasisKind.BOLD]!!.range.startOffset, byKind[EmphasisKind.BOLD]!!.range.endOffset))
+        assertEquals("*italic*", file.text.substring(byKind[EmphasisKind.ITALIC]!!.range.startOffset, byKind[EmphasisKind.ITALIC]!!.range.endOffset))
+        assertEquals("~~strike~~", file.text.substring(byKind[EmphasisKind.STRIKETHROUGH]!!.range.startOffset, byKind[EmphasisKind.STRIKETHROUGH]!!.range.endOffset))
+    }
+
+    fun `test bold italic detected`() {
+        val file = parse("a ***both*** b")
+        val kinds = MarkdownStructure.emphasis(file).map { it.kind }
+        assertTrue("expected BOLD_ITALIC, got $kinds", EmphasisKind.BOLD_ITALIC in kinds)
+        // Must not double-count: no separate BOLD or ITALIC for the same ***both*** span
+        assertFalse("must not report separate BOLD for ***both***, got $kinds", EmphasisKind.BOLD in kinds)
+        assertFalse("must not report separate ITALIC for ***both***, got $kinds", EmphasisKind.ITALIC in kinds)
     }
 
     fun `test inline link fold range is the destination part`() {
