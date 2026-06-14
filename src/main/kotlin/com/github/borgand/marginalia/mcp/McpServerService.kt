@@ -9,12 +9,21 @@ import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
 import com.intellij.openapi.diagnostic.logger
+import io.ktor.http.HttpHeaders
+import io.ktor.http.HttpStatusCode
 import io.ktor.serialization.kotlinx.json.json
+import io.ktor.server.application.Application
 import io.ktor.server.application.install
 import io.ktor.server.cio.CIO
 import io.ktor.server.engine.EmbeddedServer
 import io.ktor.server.engine.embeddedServer
 import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
+import io.ktor.server.response.respond
+import io.ktor.server.routing.RoutingContext
+import io.ktor.server.routing.delete
+import io.ktor.server.routing.get
+import io.ktor.server.routing.post
+import io.ktor.server.routing.routing
 import io.modelcontextprotocol.kotlin.sdk.server.mcpStreamableHttp
 import io.modelcontextprotocol.kotlin.sdk.types.McpJson
 import java.net.BindException
@@ -125,6 +134,7 @@ class McpServerService : Disposable {
                     recordConnection()
                     McpServerBuilder.build()
                 }
+                redirectBareRootToMcp()
             }.start(wait = false)
 
             state = State.RUNNING
@@ -192,5 +202,25 @@ class McpServerService : Disposable {
         stopEngine()
         state = State.STOPPED
         status = "stopped"
+    }
+}
+
+/**
+ * Tolerate MCP clients registered with the bare base URL (e.g. `http://localhost:4747`)
+ * instead of the documented `.../mcp`. Without this, a request to `/` hits Ktor's default
+ * empty-body 404; Claude Code then attempts OAuth discovery against the server and fails
+ * parsing the empty 404 body ("Invalid OAuth error response… Unexpected EOF"), so the
+ * connection looks broken / auth-required. A 308 preserves the POST method and JSON-RPC
+ * body, so a conformant client transparently retries against [mcpPath].
+ */
+internal fun Application.redirectBareRootToMcp(mcpPath: String = "/mcp") {
+    suspend fun RoutingContext.toMcp() {
+        call.response.headers.append(HttpHeaders.Location, mcpPath)
+        call.respond(HttpStatusCode.PermanentRedirect)
+    }
+    routing {
+        get("/") { toMcp() }
+        post("/") { toMcp() }
+        delete("/") { toMcp() }
     }
 }

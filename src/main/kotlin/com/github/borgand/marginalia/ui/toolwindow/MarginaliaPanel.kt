@@ -60,6 +60,10 @@ class MarginaliaPanel(
         selectionMode = ListSelectionModel.SINGLE_SELECTION
         cellRenderer = CommentListRenderer()
         background = MarginaliaColors.surfaceToolWindow
+        // Cards already wrap their own content to the list width; the platform's
+        // expandable-items hover popup would just repaint the card overflowing past
+        // the tool-window edge, adding no detail. Disable it.
+        setExpandableItemsEnabled(false)
     }
     private val ribbon = ProgressRibbon()
     private val connectionChip = ConnectionChip()

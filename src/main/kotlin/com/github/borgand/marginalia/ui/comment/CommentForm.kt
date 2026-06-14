@@ -9,6 +9,7 @@ import com.intellij.ui.components.JBTextArea
 import com.intellij.util.ui.JBFont
 import com.intellij.util.ui.JBUI
 import java.awt.BorderLayout
+import java.awt.Dimension
 import java.awt.Font
 import javax.swing.BoxLayout
 import javax.swing.JComponent
@@ -32,7 +33,16 @@ class CommentForm(private val fileName: String, private val line: Int, private v
 
     val component: JComponent by lazy { build() }
 
-    private fun build(): JComponent = JPanel().apply {
+    // Width is driven by the text input (~42 cols), never by how much text the user
+    // happened to select: clamp so a long selection can't stretch the dialog/popup
+    // off-screen (the snippet itself is truncated below, with the full text in a tooltip).
+    private fun build(): JComponent = object : JPanel() {
+        override fun getPreferredSize(): Dimension {
+            val pref = super.getPreferredSize()
+            pref.width = pref.width.coerceIn(JBUI.scale(MIN_WIDTH), JBUI.scale(MAX_WIDTH))
+            return pref
+        }
+    }.apply {
         layout = BoxLayout(this, BoxLayout.Y_AXIS)
         border = JBUI.Borders.empty(10, 12)
 
@@ -69,13 +79,25 @@ class CommentForm(private val fileName: String, private val line: Int, private v
                 JBUI.Borders.customLine(MarginaliaColors.statusPending, 0, 2, 0, 0),
                 JBUI.Borders.empty(6, 8),
             )
+            val oneLine = snippet.replace('\n', ' ').trim()
+            val shown = oneLine.ifEmpty { "(empty selection)" }
             add(
-                JBLabel(snippet.replace('\n', ' ').trim().ifEmpty { "(empty selection)" }).apply {
+                JBLabel(truncate(shown, SNIPPET_MAX_CHARS)).apply {
                     font = editorFont
                     foreground = MarginaliaColors.textPrimary
+                    if (oneLine.length > SNIPPET_MAX_CHARS) toolTipText = oneLine
                 },
                 BorderLayout.CENTER,
             )
         }
+    }
+
+    private fun truncate(s: String, max: Int): String =
+        if (s.length <= max) s else s.take(max - 1) + "…"
+
+    companion object {
+        private const val MIN_WIDTH = 360
+        private const val MAX_WIDTH = 560
+        private const val SNIPPET_MAX_CHARS = 72
     }
 }

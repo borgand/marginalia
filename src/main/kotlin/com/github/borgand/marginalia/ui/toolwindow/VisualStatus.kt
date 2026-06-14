@@ -37,14 +37,18 @@ enum class VisualStatus(val label: String) {
 }
 
 /**
- * Maps a comment to its visual status. Orphaned (anchor text deleted, see
- * [com.github.borgand.marginalia.core.CommentStore.ensureAnchored]) is checked first so a
- * lost anchor always reads as [VisualStatus.FAILED] regardless of dispatch state.
+ * Maps a comment to its visual status. Dispatch state wins over the orphaned flag: once a
+ * comment has reached the agent (DISPATCHED/ADDRESSED) or been closed (RESOLVED), a lost
+ * anchor is the *expected* outcome of the text being rewritten, not a failure — re-anchoring
+ * the original snippet legitimately fails after restart (markers are transient, see
+ * [com.github.borgand.marginalia.core.CommentStore.ensureAnchored]). Orphaned only reads as
+ * [VisualStatus.FAILED] for a comment that was never delivered: there a missing anchor means
+ * it can no longer be acted on.
  */
 fun visualStatus(comment: MarginaliaComment): VisualStatus = when {
-    comment.orphaned -> VisualStatus.FAILED
     comment.status == CommentStatus.RESOLVED -> VisualStatus.RESOLVED
     comment.status == CommentStatus.DISPATCHED ||
         comment.status == CommentStatus.ADDRESSED -> VisualStatus.DELIVERED
+    comment.orphaned -> VisualStatus.FAILED // DRAFT/QUEUED with a lost anchor
     else -> VisualStatus.QUEUED // DRAFT, QUEUED
 }

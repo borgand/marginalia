@@ -1,86 +1,209 @@
 # Marginalia
 
+> **Review your AI agent's work the way you review a pull request — inline, anchored to the text, without ever leaving the editor or breaking the agent's flow.**
+
 ![Build](https://github.com/borgand/marginalia/workflows/Build/badge.svg)
+![IntelliJ Platform](https://img.shields.io/badge/IntelliJ-IC%20Community-000?logo=intellijidea)
+![Kotlin](https://img.shields.io/badge/Kotlin-JDK%2021-7F52FF?logo=kotlin&logoColor=white)
 
-PR-style commenting and live edit merging between you and an AI coding agent, inside
-IntelliJ, with the agent's native UX (Claude Code TUI) left fully intact.
+Marginalia turns IntelliJ into a **live co-editing surface** between you and an AI coding
+agent. You comment on ranges of a document like a PR reviewer; the agent receives those
+comments through a local MCP server and merges its edits back into the *same buffer you are
+typing in* — repositioned around your concurrent changes, never clobbering them.
 
-Marginalia is a **sidecar to the agent, not a wrapper around it**: you keep running
-Claude Code exactly as today. The plugin hosts a local MCP server that exposes the live
-document and your review comments as tools, and a merge engine that lands the agent's
-edits into the buffer you are typing in — re-positioned around your concurrent edits,
-never clobbering them.
+It is a **sidecar to the agent, not a wrapper around it.** You keep running Claude Code (or
+any MCP-speaking agent) exactly as you do today — its native TUI, skills, slash commands,
+plan mode, all intact. Marginalia adds the one thing a chat box can't: a shared canvas.
 
-See [docs/main-prd.md](docs/main-prd.md) for the full product requirements,
-architecture, and the remaining roadmap.
+
+![Marginalia in action: anchored comments beside a live Claude Code session](docs/images/hero.png)
+
+---
+
+## Why Marginalia
+
+Iterating on a PRD, an architecture doc, or freshly generated code with an agent usually
+means describing changes in chat. That breaks down fast:
+
+- **Pinpointing is exhausting.** "Rewrite the third paragraph under *Deployment*" is a
+  terrible addressing scheme. Selecting the text and commenting on it is the right one.
+- **Full rewrites clobber everyone.** Comment while the agent regenerates the whole file
+  (the Cowork Canvas pattern) and the writes collide — your edit, the agent's version, or
+  your comment gets destroyed.
+- **Turn-taking kills flow.** While the agent works one comment, you're frozen: don't type,
+  don't comment, or you lose changes.
+
+Marginalia fixes all three. Comment as you read. Keep typing while the agent works. Edits
+from both sides land in one buffer that never reloads.
+
+
+|                        | Chat-only iteration              | Marginalia                            |
+| ---------------------- | -------------------------------- | ------------------------------------- |
+| Targeting a change     | Describe it in prose             | Select the text, comment on it        |
+| Editing it yourself    | Desyncs the agent                | Agent reads the live buffer next turn |
+| Agent applies a change | File reloads, your edits at risk | Merged in place,**you win conflicts** |
+| Working in parallel    | Blocked until the turn ends      | Keep typing and commenting freely     |
+| The agent's UX         | —                               | Untouched: native Claude Code TUI     |
+
+---
+
+## Highlights
+
+### 📝 PR-style comments anchored to the text
+
+Select a range, hit <kbd>Ctrl/Cmd+Alt+M</kbd>, type your note. The comment is anchored to
+the actual text (not a line number), so it survives edits by either side. A floating
+toolbar button appears on selection if you prefer the mouse.
+
+### 🔀 A merge engine that never overwrites you
+
+Every agent edit passes through Marginalia's merge engine. Hunks are re-anchored against
+your concurrent typing (exact → whitespace-tolerant → fuzzy match) and applied in place.
+If an edit collides with something you changed, **the user wins**: the conflict goes back to
+the agent with the current text and surfaces in the tool window for manual apply.
+
+### 🗂️ A review sidecar, not a chat
+
+The tool window groups pending comments by file, shows dispatch state, a resolved /
+delivered / queued progress ribbon, applied-hunk history, and any conflicts that need you.
+The agent's own TUI is the chat — this panel is the review queue.
+
+![The Marginalia review sidecar](docs/images/tool-window.png)
+
+### ✨ Rich Markdown rendering, in the native editor
+
+For `.md` files, Marginalia layers visual richness directly onto the IntelliJ editor — no
+webview, no second pane. The raw source stays byte-identical for you *and* the agent;
+every enhancement is ephemeral decoration.
+
+### 🤝 Agent-agnostic by construction
+
+Anything that speaks MCP gets the same powers with a single config line. Built and tested
+against Claude Code; Codex CLI, OpenCode, and friends work the same way.
+
+---
 
 ## How it works
 
-1. You comment on a text range (`Add Marginalia Comment`, <kbd>Ctrl/Cmd+Alt+M</kbd>).
-   The file becomes *co-edited* and the comment is queued.
-2. The agent pulls comments via the `get_pending_comments` MCP tool (use the shipped
-   `/marginalia` slash command, or just tell it to check).
-3. A PreToolUse hook denies the agent's native `Edit`/`Write` on co-edited files and
-   redirects it to `mcp__marginalia__apply_edit`, which merges hunks into the live
-   buffer. Conflicts with your edits are returned to the agent — **user wins**.
-4. The Marginalia tool window shows the queue, dispatch state, applied hunks, and
-   conflicts. It is not a chat — the agent's own TUI is the chat.
+```mermaid
+sequenceDiagram
+    actor You
+    participant M as Marginalia (IntelliJ)
+    participant Agent as Agent (Claude Code)
+
+    You->>M: select text → comment
+    Note over M: anchored, queued
+    Agent->>M: get_pending_comments<br/>(idle / /marginalia)
+    M->>Agent: comments delivered
+    Note over You: keep typing ✏️
+    Agent->>M: apply_edit (old→new)<br/>edits back
+    Note over M: merge engine re-anchors<br/>around your edits — user wins
+    M->>Agent: conflicts returned
+    M->>You: hunks land live in the buffer
+```
+
+1. You comment on a text range. The file becomes **co-edited** and the comment is queued.
+2. The agent pulls comments via the `get_pending_comments` MCP tool — run the shipped
+   `/marginalia` slash command, or just tell it to check.
+3. A **PreToolUse hook** denies the agent's native `Edit`/`Write` on co-edited files and
+   redirects it to `mcp__marginalia__apply_edit`, which merges hunks into the live buffer.
+   Conflicts with your edits are returned to the agent. **User wins.**
+4. The tool window tracks the queue, dispatch state, applied hunks, and conflicts.
+
+---
+
+## Workflows
+
+**As-I-go review (the primary flow).**
+Read the doc the agent drafted. Select a sentence → <kbd>Ctrl/Cmd+Alt+M</kbd> → "too vague,
+give concrete failure modes" → keep reading. With auto-dispatch on, comments reach the agent
+the moment it's idle, and its edits arrive inline. You never stop to wait.
+
+**Batch review ("submit review").**
+Toggle auto-dispatch off, accumulate comments across several sections, then flush them as a
+single prompt — classic PR style, good for coherent multi-section rework.
+
+**Direct edit + comment.**
+Rewrite a paragraph by hand, comment elsewhere. The agent reads the live buffer (`read_doc`)
+on its next turn, so your manual edits are automatically in its context. There is no sync
+step to remember.
+
+**Code review of agent changes.**
+The agent delivers code; you comment on the hunks in ordinary source files with the exact
+same mechanism — native editor, no webview.
+
+---
 
 ## Setup
 
-1. Install the plugin (build with `./gradlew buildPlugin`, install the zip from
-   `build/distributions/` via <kbd>Settings</kbd> > <kbd>Plugins</kbd> > <kbd>⚙️</kbd> >
-   <kbd>Install plugin from disk…</kbd>).
-2. Register the MCP server with Claude Code (once):
+**Requirements:** Any IntelliJ-based JetBrains IDE (IntelliJ IDEA, PyCharm, WebStorm, GoLand, Rider, …, Community or commercial), Claude Code, and `jq` on your PATH.
+
+1. **Install the plugin.** Build the zip and install it from disk:
+
+   ```bash
+   ./gradlew buildPlugin
+   ```
+
+   Then in the IDE: <kbd>Settings</kbd> → <kbd>Plugins</kbd> → <kbd>⚙️</kbd> →
+   <kbd>Install Plugin from Disk…</kbd> and pick the zip from `build/distributions/`.
+2. **Register the MCP server with Claude Code** (once):
 
    ```bash
    claude mcp add --transport http marginalia http://localhost:4747/mcp
    ```
+3. **Install the Claude Code integration.** Run
+   <kbd>Tools</kbd> → <kbd>Marginalia: Install Claude Code Integration</kbd>. With your
+   confirmation it installs:
 
-3. Run <kbd>Tools</kbd> > <kbd>Marginalia: Install Claude Code Integration</kbd>. This
-   installs (with your confirmation):
-   - `~/.marginalia/marginalia-hook.sh` — the PreToolUse edit-routing hook (requires `jq`)
+   - `~/.marginalia/marginalia-hook.sh` — the PreToolUse edit-routing hook
    - a `PreToolUse` hook entry in `~/.claude/settings.json`
    - `~/.claude/commands/marginalia.md` — the `/marginalia` slash command
 
-## Usage
+That's it. Open a file, add a comment, and ask your agent to check Marginalia.
 
-- **As-I-go review:** select text → <kbd>Ctrl/Cmd+Alt+M</kbd> → type the comment → keep
-  reading. With auto-dispatch on, comments are immediately available to the agent.
-- **Batch review:** toggle auto-dispatch off in the tool window, accumulate comments,
-  then hit *Submit review*.
-- **Direct edits** need no sync step: the agent reads the live buffer via `read_doc`.
+---
 
-## Markdown rendering
+## Markdown rendering in detail
 
-For `.md` files Marginalia layers MarkEdit-style visual enhancements directly on the native
-editor — no separate editor pane, no webview. The raw source stays byte-identical for both
-you and the agent; all rendering is ephemeral decoration.
+All Markdown enhancements are decorations over the bundled `org.intellij.plugins.markdown`
+PSI. The buffer is never rewritten; rendering is purely visual and toggles per feature in
+**Settings → Tools → Marginalia**.
 
-**Tier 1 (on by default):**
-- Styled headings (distinct color per H1–H6), bold/italic emphasis, strikethrough, colored
-  list markers — all recolorable in **Settings > Editor > Color Scheme > Marginalia**.
-- Blockquote left-bar accent and horizontal-rule full-width line painting.
-- Folded link `](url)` targets, YAML frontmatter, and HTML comments (caret or Ctrl+. expands).
-- Gutter icons for images (preview popup) and Mermaid diagrams (rendered on demand via a
-  JCEF popup with bundled mermaid.min.js).
+**Tier 1 (on by default)**
 
-**Tier 2 (on by default for titles and tables; opt-in for inline images):**
-- Large H1/H2 custom fold glyph for a reading-flow view.
+- Styled headings (a distinct color per H1–H6), bold/italic emphasis, strikethrough, and
+  colored list markers — all recolorable in **Settings → Editor → Color Scheme → Marginalia**.
+- Blockquote left-bar accent and full-width horizontal-rule painting.
+- Folded link `](url)` targets, YAML frontmatter, and HTML comments (caret or <kbd>Ctrl+.</kbd> expands).
+- Gutter icons for images (preview popup) and Mermaid diagrams (rendered on demand in a JCEF
+  popup via bundled `mermaid.min.js`).
+
+**Tier 2 (on by default for titles and tables; opt-in for inline images)**
+
+- Large H1/H2 custom-fold glyph for a reading-flow view.
 - Aligned table grid rendered in the fold region.
 - Opt-in inline image fold (off by default).
 
-**Heading outline / navigation:** provided by the IDE's built-in Structure view
-(View → Tool Windows → Structure, or Cmd+7 / Ctrl+F12) — the bundled Markdown plugin
-renders the heading tree with no extra code. *Final visual confirmation is a manual check
-(`./gradlew runIde`).*
+**Heading outline / navigation** comes from the IDE's built-in Structure view
+(<kbd>View → Tool Windows → Structure</kbd>, or <kbd>Cmd+7</kbd> / <kbd>Ctrl+F12</kbd>) —
+the bundled Markdown plugin renders the heading tree with no extra code.
 
-All Tier 1 and Tier 2 features toggle independently in **Settings > Tools > Marginalia**.
+---
 
 ## MCP tools
 
-`list_co_edited_docs`, `read_doc`, `apply_edit`, `get_pending_comments`,
-`resolve_comment` — contracts in [docs/main-prd.md §6](docs/main-prd.md).
+The agent-facing API. Full contracts in [docs/main-prd.md §6](docs/main-prd.md).
+
+
+| Tool                   | Purpose                                                    |
+| ---------------------- | ---------------------------------------------------------- |
+| `list_co_edited_docs`  | Which files are currently live co-edited                   |
+| `read_doc`             | Read the live buffer (never disk); records the merge base  |
+| `apply_edit`           | Apply`old_text → new_text` hunks through the merge engine |
+| `get_pending_comments` | Pull queued comments (marks them dispatched)               |
+| `resolve_comment`      | Mark a comment addressed, with an optional note            |
+
+---
 
 ## Development
 
@@ -89,7 +212,11 @@ All Tier 1 and Tier 2 features toggle independently in **Settings > Tools > Marg
 - `./gradlew runIde` — sandbox IDE for manual testing
 - `./gradlew buildPlugin` — installable zip in `build/distributions/`
 
+See [CLAUDE.md](CLAUDE.md) for the architecture map and IntelliJ Platform rules, and
+[docs/main-prd.md](docs/main-prd.md) for the full product requirements and roadmap.
+
 ---
+
 Plugin based on the [IntelliJ Platform Plugin Template][template].
 
 [template]: https://github.com/JetBrains/intellij-platform-plugin-template

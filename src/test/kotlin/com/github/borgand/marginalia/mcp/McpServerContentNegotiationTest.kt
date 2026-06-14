@@ -82,6 +82,34 @@ class McpServerContentNegotiationTest : TestCase() {
         }
     }
 
+    fun testBareRootRedirectsToMcpPreservingMethod() {
+        val port = ServerSocket(0).use { it.localPort }
+        val engine = embeddedServer(CIO, host = "127.0.0.1", port = port) {
+            install(ContentNegotiation) { json(McpJson) }
+            mcpStreamableHttp { bareServer() }
+            redirectBareRootToMcp()
+        }.start(wait = false)
+        try {
+            waitUntilListening(port)
+
+            val conn = (URI("http://127.0.0.1:$port/").toURL().openConnection() as HttpURLConnection).apply {
+                requestMethod = "POST"
+                instanceFollowRedirects = false
+                setRequestProperty("Accept", "application/json, text/event-stream")
+                setRequestProperty("Content-Type", "application/json")
+                doOutput = true
+                outputStream.use { it.write("""{"jsonrpc":"2.0","id":1,"method":"ping"}""".toByteArray()) }
+            }
+
+            // 308 (not 301/302) so the client re-POSTs the JSON-RPC body to /mcp instead of
+            // downgrading to GET; otherwise a client on the bare base URL sees an empty 404.
+            assertEquals("bare root POST must 308-redirect to /mcp", 308, conn.responseCode)
+            assertEquals("/mcp", conn.getHeaderField("Location"))
+        } finally {
+            engine.stop(gracePeriodMillis = 100, timeoutMillis = 500)
+        }
+    }
+
     private fun waitUntilListening(port: Int, timeoutMs: Long = 5000) {
         val deadline = System.currentTimeMillis() + timeoutMs
         while (System.currentTimeMillis() < deadline) {

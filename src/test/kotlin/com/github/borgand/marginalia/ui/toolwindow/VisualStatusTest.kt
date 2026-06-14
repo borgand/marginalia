@@ -31,13 +31,18 @@ class VisualStatusTest {
     }
 
     @Test
-    fun orphanedIsFailedRegardlessOfStatus() {
-        for (status in CommentStatus.entries) {
-            assertEquals(
-                "orphaned comment with status $status should be FAILED",
-                VisualStatus.FAILED,
-                visualStatus(comment(status, orphaned = true)),
-            )
-        }
+    fun orphanedUndeliveredCommentIsFailed() {
+        // A lost anchor only signals failure while the comment was never delivered.
+        assertEquals(VisualStatus.FAILED, visualStatus(comment(CommentStatus.DRAFT, orphaned = true)))
+        assertEquals(VisualStatus.FAILED, visualStatus(comment(CommentStatus.QUEUED, orphaned = true)))
+    }
+
+    @Test
+    fun deliveredOrResolvedCommentKeepsStatusWhenOrphaned() {
+        // After the agent rewrites the anchored text, the original snippet no longer matches
+        // on restart and the comment orphans — but it was delivered/closed, not failed.
+        assertEquals(VisualStatus.DELIVERED, visualStatus(comment(CommentStatus.DISPATCHED, orphaned = true)))
+        assertEquals(VisualStatus.DELIVERED, visualStatus(comment(CommentStatus.ADDRESSED, orphaned = true)))
+        assertEquals(VisualStatus.RESOLVED, visualStatus(comment(CommentStatus.RESOLVED, orphaned = true)))
     }
 }
