@@ -4,6 +4,11 @@
 
 ## [Unreleased]
 
+## [1.0.1] - 2026-06-14
+
+### Added
+- **MIT license.** The project is now distributed under the MIT License (`LICENSE`).
+
 ## [1.0.0] - 2026-06-14
 
 ### Added
