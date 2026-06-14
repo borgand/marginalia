@@ -4,6 +4,37 @@
 
 ## [Unreleased]
 
+## [0.9.4] - 2026-06-14
+
+### Changed
+- **Comment status colors.** Delivered is now a lighter, more legible green (the previous
+  green was hard to see), and Resolved is blue — distinct from the amber Queued/pending and
+  from Delivered. The progress-ribbon bar now follows the same status→color mapping as the
+  legend instead of using its own hardcoded colors.
+
+## [0.9.3] - 2026-06-14
+
+### Fixed
+- **MCP connection from the bare base URL.** The server only served `/mcp`, so a client
+  registered with `http://localhost:<port>` hit Ktor's empty-body 404 — which Claude Code
+  surfaced as a broken/auth-required server ("Invalid OAuth error response… Unexpected
+  EOF"). The root path now issues a 308 redirect (method + JSON-RPC body preserved) to
+  `/mcp`, so either URL connects.
+- **Queue hover overflow.** Disabled the tool-window list's expandable-items hover popup,
+  which repainted comment cards overflowing past the IDE edge without adding detail.
+- **Add-comment dialog width.** The dialog/popup stretched with the length of the selected
+  text and could run off-screen. Width is now clamped and the anchored snippet is truncated
+  (full text in a tooltip), so the surface size no longer depends on the selection.
+
+## [0.9.2] - 2026-06-14
+
+### Changed
+- **New plugin icons.** Added a colored plugin logo (`pluginIcon.svg` / `_dark`) so the
+  marketplace and plugin list show real branding instead of the generic plug. Redesigned
+  the tool-window icon as a document with an amber comment balloon, filling the 16×16 box
+  so it reads at the same size as neighboring icons; monochrome themed variants for light
+  and dark.
+
 ## [0.9.0] - 2026-06-13
 
 ### Added
