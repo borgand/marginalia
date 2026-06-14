@@ -116,9 +116,9 @@ class ProgressRibbon : JPanel(BorderLayout(0, JBUI.scale(4))) {
                 if (total <= 0f) return
                 var x = 0f
                 for ((value, color) in listOf(
-                    curR to MarginaliaColors.statusResolved as Color,
-                    curD to MarginaliaColors.accent,
-                    curQ to MarginaliaColors.statusPending,
+                    curR to VisualStatus.RESOLVED.color,
+                    curD to VisualStatus.DELIVERED.color,
+                    curQ to VisualStatus.QUEUED.color,
                 )) {
                     if (value <= 0f) continue
                     val segW = w * value / total

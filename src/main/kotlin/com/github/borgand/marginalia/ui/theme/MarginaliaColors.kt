@@ -33,8 +33,12 @@ object MarginaliaColors {
     /** status.pending — queued / pending text & marks. */
     val statusPending: Color get() = JBUI.CurrentTheme.Label.warningForeground()
 
-    /** status.resolved — resolved / connected / success. */
-    val statusResolved: JBColor get() = JBColor.namedColor("Banner.successBackground", JBColor(0x208A3C, 0x5FAD65))
+    /** status.delivered — delivered / connected / success (a light, legible green). */
+    val statusDelivered: JBColor get() = JBColor.namedColor("Banner.successBackground", JBColor(0x2E9E45, 0x77C97D))
+
+    /** status.info — resolved / closed. An intentional fixed blue hue: the theme accent
+     * isn't guaranteed to read as blue, so this token doesn't dereference it. */
+    val statusInfo: JBColor get() = JBColor.namedColor("Notification.MoreButton.foreground", JBColor(0x3574F0, 0x548AF7))
 
     /** text.muted — secondary / metadata text. */
     val textMuted: JBColor get() = JBColor.namedColor("Label.infoForeground", JBColor(0x818594, 0x6F737A))

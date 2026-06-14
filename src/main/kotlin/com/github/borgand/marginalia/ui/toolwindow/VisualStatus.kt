@@ -26,9 +26,9 @@ enum class VisualStatus(val label: String) {
 
     val color: Color
         get() = when (this) {
-            QUEUED -> MarginaliaColors.statusPending
-            DELIVERED -> MarginaliaColors.accent
-            RESOLVED -> MarginaliaColors.statusResolved
+            QUEUED -> MarginaliaColors.statusPending // amber — pending, not yet sent
+            DELIVERED -> MarginaliaColors.statusDelivered // green — in flight / positive progress
+            RESOLVED -> MarginaliaColors.statusInfo // blue — closed
             FAILED -> MarginaliaColors.statusConflict
         }
 

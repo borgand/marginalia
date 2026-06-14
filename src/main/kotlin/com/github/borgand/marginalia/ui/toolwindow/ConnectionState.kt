@@ -10,7 +10,7 @@ enum class ConnectionTone {
 
     val color: Color
         get() = when (this) {
-            CONNECTED -> MarginaliaColors.statusResolved
+            CONNECTED -> MarginaliaColors.statusDelivered
             WAITING -> MarginaliaColors.statusPending
             ERROR -> MarginaliaColors.statusConflict
             STOPPED -> MarginaliaColors.textMuted
