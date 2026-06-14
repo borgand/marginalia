@@ -5,6 +5,9 @@
 ![Build](https://github.com/borgand/marginalia/workflows/Build/badge.svg)
 ![IntelliJ Platform](https://img.shields.io/badge/IntelliJ-IC%20Community-000?logo=intellijidea)
 ![Kotlin](https://img.shields.io/badge/Kotlin-JDK%2021-7F52FF?logo=kotlin&logoColor=white)
+[![JetBrains Marketplace](https://img.shields.io/jetbrains/plugin/v/32287?label=JetBrains%20Marketplace&logo=jetbrains&color=FE2857)](https://plugins.jetbrains.com/plugin/32287)
+
+**✨ Get Marginalia from the [JetBrains Marketplace](https://plugins.jetbrains.com/plugin/32287) — one click, no manual build.**
 
 Marginalia turns IntelliJ into a **live co-editing surface** between you and an AI coding
 agent. You comment on ranges of a document like a PR reviewer; the agent receives those
@@ -138,7 +141,12 @@ same mechanism — native editor, no webview.
 
 **Requirements:** Any IntelliJ-based JetBrains IDE (IntelliJ IDEA, PyCharm, WebStorm, GoLand, Rider, …, Community or commercial), Claude Code, and `jq` on your PATH.
 
-1. **Install the plugin.** Build the zip and install it from disk:
+1. **Install the plugin.** The easiest way is from the
+   [JetBrains Marketplace](https://plugins.jetbrains.com/plugin/32287): in the IDE go to
+   <kbd>Settings</kbd> → <kbd>Plugins</kbd> → <kbd>Marketplace</kbd>, search for
+   *Marginalia*, and click <kbd>Install</kbd>.
+
+   Prefer to build it yourself? Produce the zip and install it from disk:
 
    ```bash
    ./gradlew buildPlugin
