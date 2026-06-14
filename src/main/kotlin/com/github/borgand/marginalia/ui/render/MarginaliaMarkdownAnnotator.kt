@@ -22,14 +22,22 @@ class MarginaliaMarkdownAnnotator : Annotator {
                 else -> MarginaliaTextAttributes.H4_6
             }
             paint(holder, h.contentRange, key)
+            // Layer bold/italic (and an H1 underline) over the heading color so titles stand out
+            // without the Tier-2 big-title fold (which the platform's section folding blocks).
+            when (h.level) {
+                1 -> paint(holder, h.contentRange, MarginaliaTextAttributes.H1_STYLE)
+                2 -> paint(holder, h.contentRange, MarginaliaTextAttributes.H2_STYLE)
+            }
             if (settings.dimMarkers) paint(holder, h.markerRange, MarginaliaTextAttributes.DIMMED_MARKER)
         }
 
         for (e in MarkdownStructure.emphasis(element)) {
             val key = when (e.kind) {
+                EmphasisKind.BOLD -> MarginaliaTextAttributes.BOLD
+                EmphasisKind.ITALIC -> MarginaliaTextAttributes.ITALIC
+                EmphasisKind.BOLD_ITALIC -> MarginaliaTextAttributes.BOLD_ITALIC
                 EmphasisKind.STRIKETHROUGH -> MarginaliaTextAttributes.STRIKETHROUGH
-                else -> null
-            } ?: continue
+            }
             paint(holder, e.range, key)
         }
 

@@ -72,6 +72,23 @@ class CustomFoldController(private val project: Project) {
                     region.putUserData(TAG, true)
                 }
             }
+
+            // Caret-follow for link-URL folds. These are regular FoldRegions from
+            // MarginaliaFoldingBuilder; the platform expands them on caret entry but never
+            // re-collapses, so we drive both directions: expand only the link on the caret's
+            // line, keep the rest folded to "](…)".
+            if (RenderSettings.getInstance().foldLinkUrls) {
+                val linkRanges = MarkdownStructure.links(file).map { it.foldRange }
+                for (region in folding.allFoldRegions) {
+                    if (region is CustomFoldRegion || !region.isValid) continue
+                    val matches = linkRanges.any {
+                        it.startOffset == region.startOffset && it.endOffset == region.endOffset
+                    }
+                    if (!matches) continue
+                    val shouldExpand = doc.getLineNumber(region.startOffset) == caretLine
+                    if (region.isExpanded != shouldExpand) region.isExpanded = shouldExpand
+                }
+            }
         }
     }
 

@@ -2,6 +2,7 @@ package com.github.borgand.marginalia.ui.render
 
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.components.BaseState
+import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.SimplePersistentStateComponent
 import com.intellij.openapi.components.State
 import com.intellij.openapi.components.Storage
@@ -15,6 +16,7 @@ class RenderState : BaseState() {
     var inlineImages by property(false)
 }
 
+@Service(Service.Level.APP)
 @State(name = "MarginaliaRender", storages = [Storage("marginalia.xml")])
 class RenderSettings : SimplePersistentStateComponent<RenderState>(RenderState()) {
 
@@ -38,7 +40,14 @@ class RenderSettings : SimplePersistentStateComponent<RenderState>(RenderState()
         set(v) { state.inlineImages = v }
 
     companion object {
-        fun getInstance(): RenderSettings =
-            ApplicationManager.getApplication().getService(RenderSettings::class.java)
+        /** Read-only defaults used if the service is momentarily unavailable (e.g. during a
+         *  dynamic plugin reload), so callers on the EDT never crash on a transient null. */
+        private val FALLBACK by lazy { RenderSettings() }
+
+        fun getInstance(): RenderSettings {
+            val app = ApplicationManager.getApplication() ?: return FALLBACK
+            val service: RenderSettings? = app.getService(RenderSettings::class.java)
+            return service ?: FALLBACK
+        }
     }
 }

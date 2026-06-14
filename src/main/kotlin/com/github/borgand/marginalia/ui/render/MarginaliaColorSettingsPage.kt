@@ -20,13 +20,18 @@ class MarginaliaColorSettingsPage : ColorSettingsPage {
         AttributesDescriptor("Heading 2", MarginaliaTextAttributes.H2),
         AttributesDescriptor("Heading 3", MarginaliaTextAttributes.H3),
         AttributesDescriptor("Heading 4-6", MarginaliaTextAttributes.H4_6),
+        AttributesDescriptor("Heading 1 emphasis (bold/italic/underline)", MarginaliaTextAttributes.H1_STYLE),
+        AttributesDescriptor("Heading 2 emphasis (bold/italic)", MarginaliaTextAttributes.H2_STYLE),
         AttributesDescriptor("Blockquote text", MarginaliaTextAttributes.BLOCKQUOTE),
         AttributesDescriptor("List marker", MarginaliaTextAttributes.LIST_MARKER),
         AttributesDescriptor("Dimmed syntax marker", MarginaliaTextAttributes.DIMMED_MARKER),
+        AttributesDescriptor("Bold", MarginaliaTextAttributes.BOLD),
+        AttributesDescriptor("Italic", MarginaliaTextAttributes.ITALIC),
+        AttributesDescriptor("Bold italic", MarginaliaTextAttributes.BOLD_ITALIC),
         AttributesDescriptor("Strikethrough", MarginaliaTextAttributes.STRIKETHROUGH),
     )
 
     override fun getDemoText(): String =
         "# Heading 1\n## Heading 2\n### Heading 3\n#### Heading 4\n\n" +
-        "> a blockquote\n\n- list item\n\n~~struck out~~\n"
+        "> a blockquote\n\n- list item\n\n**bold** _italic_ ***both*** ~~struck out~~\n"
 }

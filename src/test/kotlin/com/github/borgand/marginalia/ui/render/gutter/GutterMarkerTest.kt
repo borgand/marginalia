@@ -28,4 +28,31 @@ class GutterMarkerTest : BasePlatformTestCase() {
         val infos = markers(ImageLineMarkerProvider(), "![alt](https://example.com/a.png)\n")
         assertEquals(1, infos.size)
     }
+
+    /** The daemon's LineMarkersPass calls collectSlowLineMarkers once for the visible range
+     *  and once for the rest — over DISJOINT element subsets. A provider that re-scans the
+     *  whole file on every call (ignoring [elements]) emits one marker per fence per call,
+     *  producing duplicate gutter icons. Splitting the elements across two calls reproduces it. */
+    private fun markersAcrossTwoPasses(
+        provider: com.intellij.codeInsight.daemon.LineMarkerProvider,
+        text: String,
+    ): List<LineMarkerInfo<*>> {
+        val file = myFixture.configureByText("doc.md", text)
+        val elements = PsiTreeUtil.collectElements(file) { true }.toList()
+        val mid = elements.size / 2
+        val result = mutableListOf<LineMarkerInfo<*>>()
+        provider.collectSlowLineMarkers(elements.subList(0, mid), result)
+        provider.collectSlowLineMarkers(elements.subList(mid, elements.size), result)
+        return result
+    }
+
+    fun `test mermaid marker not duplicated across element passes`() {
+        val infos = markersAcrossTwoPasses(MermaidLineMarkerProvider(), "```mermaid\ngraph TD; A-->B;\n```\n")
+        assertEquals(1, infos.size)
+    }
+
+    fun `test image marker not duplicated across element passes`() {
+        val infos = markersAcrossTwoPasses(ImageLineMarkerProvider(), "![alt](https://example.com/a.png)\n")
+        assertEquals(1, infos.size)
+    }
 }

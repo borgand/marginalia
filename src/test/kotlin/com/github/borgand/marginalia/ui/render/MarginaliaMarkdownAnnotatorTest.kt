@@ -23,13 +23,36 @@ class MarginaliaMarkdownAnnotatorTest : BasePlatformTestCase() {
 
     fun `test h1 and h2 get heading keys`() {
         val keys = keysOver("# One\n\n## Two\n")
-        assertEquals("MARGINALIA_H1", keys.first { it.first.contains("One") }.second)
-        assertEquals("MARGINALIA_H2", keys.first { it.first.contains("Two") }.second)
+        assertTrue(keys.any { it.first.contains("One") && it.second == "MARGINALIA_H1" })
+        assertTrue(keys.any { it.first.contains("Two") && it.second == "MARGINALIA_H2" })
+    }
+
+    fun `test h1 and h2 also get emphasis style keys`() {
+        val keys = keysOver("# One\n\n## Two\n")
+        assertTrue("expected H1 emphasis style, keys: $keys",
+            keys.any { it.first.contains("One") && it.second == "MARGINALIA_H1_STYLE" })
+        assertTrue("expected H2 emphasis style, keys: $keys",
+            keys.any { it.first.contains("Two") && it.second == "MARGINALIA_H2_STYLE" })
     }
 
     fun `test strikethrough key applied`() {
         val keys = keysOver("~~gone~~\n")
         assertTrue(keys.any { it.second == "MARGINALIA_STRIKETHROUGH" })
+    }
+
+    fun `test bold key applied`() {
+        val keys = keysOver("a **strong** b\n")
+        assertTrue("keys were: $keys", keys.any { it.second == "MARGINALIA_BOLD" })
+    }
+
+    fun `test italic key applied`() {
+        val keys = keysOver("a _slanted_ b\n")
+        assertTrue("keys were: $keys", keys.any { it.second == "MARGINALIA_ITALIC" })
+    }
+
+    fun `test bold italic key applied`() {
+        val keys = keysOver("a ***both*** b\n")
+        assertTrue("keys were: $keys", keys.any { it.second == "MARGINALIA_BOLD_ITALIC" })
     }
 
     fun `test list marker key applied`() {

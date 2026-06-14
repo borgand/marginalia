@@ -14,6 +14,27 @@ class CustomFoldControllerTest : BasePlatformTestCase() {
         assertEquals(2, custom.size)
     }
 
+    /**
+     * Documents a known platform limitation: in the real IDE the bundled Markdown folding builder
+     * creates a section-fold region on the heading line, and [FoldingModelEx.addCustomLinesFolding]
+     * returns null when its lines overlap an existing fold region — so the Tier-2 big-title fold
+     * silently can't apply. This is why headings instead get bold/italic/underline text styling
+     * (see MarginaliaMarkdownAnnotator). If a future platform change lifts the overlap restriction,
+     * this test will start failing and we can revisit the big-title fold.
+     */
+    fun `test big title fold is blocked by an overlapping section fold (known limitation)`() {
+        myFixture.configureByText("doc.md", "# Big One\n\nbody text here\n")
+        val editor = myFixture.editor
+        val doc = editor.document
+        editor.foldingModel.runBatchFoldingOperation {
+            editor.foldingModel.addFoldRegion(0, doc.text.indexOf("body"), "…")
+        }
+        editor.caretModel.moveToOffset(doc.text.indexOf("body"))
+        project.service<CustomFoldController>().refresh(editor)
+        val custom = editor.foldingModel.allFoldRegions.filterIsInstance<com.intellij.openapi.editor.CustomFoldRegion>()
+        assertEquals("overlapping section fold blocks the big-title custom fold", 0, custom.size)
+    }
+
     fun `test caret on heading line leaves it unfolded`() {
         myFixture.configureByText("doc.md", "# Big One\n\nbody\n")
         val editor = myFixture.editor
@@ -47,6 +68,35 @@ class CustomFoldControllerTest : BasePlatformTestCase() {
         val custom = editor.foldingModel.allFoldRegions
             .filterIsInstance<com.intellij.openapi.editor.CustomFoldRegion>()
         assertTrue("expected at least one custom fold (the table)", custom.isNotEmpty())
+    }
+
+    fun `test link fold collapses off its line and expands on it`() {
+        myFixture.configureByText("doc.md", "see [docs](https://example.com/x) ok\n\nmore body\n")
+        val editor = myFixture.editor
+        val doc = editor.document
+        // Build the link fold region exactly as MarginaliaFoldingBuilder would, collapsed.
+        val descriptors = com.github.borgand.marginalia.ui.render.MarginaliaFoldingBuilder()
+            .buildFoldRegions(myFixture.file, doc, false)
+        editor.foldingModel.runBatchFoldingOperation {
+            for (d in descriptors) {
+                editor.foldingModel.addFoldRegion(d.range.startOffset, d.range.endOffset, "]")
+                    ?.let { it.isExpanded = false }
+            }
+        }
+        val linkRegion = editor.foldingModel.allFoldRegions
+            .first { it !is com.intellij.openapi.editor.CustomFoldRegion }
+
+        editor.caretModel.moveToOffset(doc.text.indexOf("more"))
+        project.service<CustomFoldController>().refresh(editor)
+        assertFalse("link fold should stay collapsed when caret is off its line", linkRegion.isExpanded)
+
+        editor.caretModel.moveToOffset(doc.text.indexOf("docs"))
+        project.service<CustomFoldController>().refresh(editor)
+        assertTrue("link fold should expand when caret is on its line", linkRegion.isExpanded)
+
+        editor.caretModel.moveToOffset(doc.text.indexOf("more"))
+        project.service<CustomFoldController>().refresh(editor)
+        assertFalse("link fold should re-collapse when caret leaves its line", linkRegion.isExpanded)
     }
 
     fun `test inline image fold only when enabled`() {

@@ -21,8 +21,13 @@ class MermaidLineMarkerProvider : LineMarkerProvider {
     override fun collectSlowLineMarkers(elements: List<PsiElement>, result: MutableCollection<in LineMarkerInfo<*>>) {
         val file = elements.firstOrNull()?.containingFile ?: return
         if (!file.name.endsWith(".md", ignoreCase = true)) return
+        // The daemon calls this once per element batch (visible range, then the rest). Only emit
+        // a marker when the fence's anchor leaf is in THIS batch, so each fence yields exactly one
+        // icon — re-scanning the whole file every call would duplicate the gutter icon.
+        val batch = elements.toHashSet()
         for (m in MarkdownStructure.mermaidFences(file)) {
             val leaf = file.findElementAt(m.fenceRange.startOffset) ?: continue
+            if (leaf !in batch) continue
             result += LineMarkerInfo(
                 leaf, leaf.textRange,
                 com.intellij.icons.AllIcons.Actions.Preview,

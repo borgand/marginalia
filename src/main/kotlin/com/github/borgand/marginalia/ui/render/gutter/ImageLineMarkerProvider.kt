@@ -19,8 +19,12 @@ class ImageLineMarkerProvider : LineMarkerProvider {
     override fun collectSlowLineMarkers(elements: List<PsiElement>, result: MutableCollection<in LineMarkerInfo<*>>) {
         val file = elements.firstOrNull()?.containingFile ?: return
         if (!file.name.endsWith(".md", ignoreCase = true)) return
+        // Only emit for anchor leaves in THIS element batch (the daemon calls us once per batch);
+        // re-scanning the whole file every call would duplicate the gutter icon.
+        val batch = elements.toHashSet()
         for (img in MarkdownStructure.images(file)) {
             val leaf = file.findElementAt(img.lineRange.startOffset) ?: continue
+            if (leaf !in batch) continue
             result += LineMarkerInfo(
                 leaf, leaf.textRange,
                 com.intellij.icons.AllIcons.FileTypes.Image,
