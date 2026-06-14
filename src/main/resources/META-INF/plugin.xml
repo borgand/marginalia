@@ -8,12 +8,16 @@
         (primarily Claude Code). Comment on anchored text ranges PR-review-style; the agent
         receives the comments through a local MCP server hosted by the plugin and applies its
         edits back through a merge engine — while you keep typing in the same buffer.</p>
+        <p><img src="https://raw.githubusercontent.com/borgand/marginalia/main/docs/images/hero.png"
+                alt="Marginalia in action: anchored comments beside a live Claude Code session" width="700"></p>
         <ul>
             <li>PR-style comments anchored to text ranges that survive edits by either party</li>
             <li>Local MCP server (Streamable HTTP) exposing the live buffer and comment queue</li>
             <li>Merge engine with user-wins conflict policy — agent edits never clobber your typing</li>
             <li>PreToolUse hook that routes agent file edits through the merge engine</li>
         </ul>
+        <p><img src="https://raw.githubusercontent.com/borgand/marginalia/main/docs/images/tool-window.png"
+                alt="The Marginalia review sidecar" width="700"></p>
     ]]></description>
 
     <depends>com.intellij.modules.platform</depends>

@@ -4,6 +4,12 @@
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-06-14
+
+### Added
+- **Screenshots in the plugin listing.** The plugin manager and JetBrains Marketplace
+  descriptions now embed the hero shot and the review-sidecar screenshot.
+
 ## [0.9.4] - 2026-06-14
 
 ### Changed
