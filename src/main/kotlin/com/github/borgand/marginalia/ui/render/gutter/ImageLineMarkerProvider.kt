@@ -7,6 +7,8 @@ import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.editor.markup.GutterIconRenderer
 import com.intellij.openapi.ui.popup.JBPopupFactory
 import com.intellij.psi.PsiElement
+import com.intellij.ui.awt.RelativePoint
+import java.awt.event.MouseEvent
 import java.net.URI
 import javax.swing.Icon
 import javax.swing.ImageIcon
@@ -29,14 +31,14 @@ class ImageLineMarkerProvider : LineMarkerProvider {
                 leaf, leaf.textRange,
                 com.intellij.icons.AllIcons.FileTypes.Image,
                 { "Preview image" },
-                { _, _ -> showImage(img.url) },
+                { e, _ -> showImage(img.url, e) },
                 GutterIconRenderer.Alignment.LEFT,
                 { "Preview image" },
             )
         }
     }
 
-    private fun showImage(url: String) {
+    private fun showImage(url: String, event: MouseEvent) {
         ApplicationManager.getApplication().executeOnPooledThread {
             val icon: Icon = try {
                 if (url.startsWith("http")) ImageIcon(URI(url).toURL()) else ImageIcon(url)
@@ -49,7 +51,9 @@ class ImageLineMarkerProvider : LineMarkerProvider {
                     .createComponentPopupBuilder(label, label)
                     .setResizable(true).setMovable(true).setRequestFocus(true)
                     .createPopup()
-                    .showInFocusCenter()
+                    // Anchor to the clicked gutter component so the popup opens in the window
+                    // that was clicked, not whichever frame holds ambient global focus.
+                    .show(RelativePoint(event))
             }
         }
     }

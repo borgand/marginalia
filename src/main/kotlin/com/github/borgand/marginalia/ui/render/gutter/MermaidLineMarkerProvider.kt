@@ -9,10 +9,12 @@ import com.intellij.openapi.ui.popup.JBPopupFactory
 import com.intellij.openapi.util.Disposer
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
+import com.intellij.ui.awt.RelativePoint
 import com.intellij.ui.jcef.JBCefApp
 import com.intellij.ui.jcef.JBCefBrowser
 import com.intellij.util.ui.JBUI
 import java.awt.Dimension
+import java.awt.event.MouseEvent
 
 class MermaidLineMarkerProvider : LineMarkerProvider {
 
@@ -32,14 +34,14 @@ class MermaidLineMarkerProvider : LineMarkerProvider {
                 leaf, leaf.textRange,
                 com.intellij.icons.AllIcons.Actions.Preview,
                 { "Render Mermaid diagram" },
-                { _, _ -> showDiagram(m.code) },
+                { e, _ -> showDiagram(m.code, e) },
                 GutterIconRenderer.Alignment.LEFT,
                 { "Render Mermaid diagram" },
             )
         }
     }
 
-    private fun showDiagram(code: String) {
+    private fun showDiagram(code: String, event: MouseEvent) {
         if (!JBCefApp.isSupported()) return
         val browser = JBCefBrowser()
         browser.loadHTML(html(code))
@@ -51,7 +53,10 @@ class MermaidLineMarkerProvider : LineMarkerProvider {
             .setTitle("Mermaid")
             .createPopup()
         Disposer.register(popup, browser)
-        popup.showInFocusCenter()
+        // Anchor to the clicked gutter component so the popup opens in the window that was
+        // clicked. showInFocusCenter() resolves the target frame from ambient global focus,
+        // which points at the wrong window when multiple IDE frames are open.
+        popup.show(RelativePoint(event))
     }
 
     private fun mermaidJs(): String =
