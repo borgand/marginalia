@@ -5,6 +5,7 @@ import com.intellij.openapi.actionSystem.CommonDataKeys
 import com.intellij.openapi.actionSystem.DataContext
 import com.intellij.openapi.application.ReadAction
 import com.intellij.openapi.editor.Editor
+import com.intellij.openapi.editor.EditorKind
 import com.intellij.openapi.editor.event.SelectionEvent
 import com.intellij.openapi.editor.event.SelectionListener
 import com.intellij.openapi.editor.toolbar.floating.AbstractFloatingToolbarProvider
@@ -22,14 +23,28 @@ class MarginaliaFloatingToolbarProvider :
 
     override val autoHideable: Boolean = true
 
+    /**
+     * The real gate. The platform only creates the toolbar component (and its mouse-motion
+     * "show on hover" listener) for editors where this returns true; [register] runs too
+     * late to suppress it. We restrict to the main editor tabs so the button never floats
+     * over embedded editors like the commit-message field, diff panes, consoles or previews.
+     * Those are backed by a (light) file too, so a file-presence check alone isn't enough —
+     * `EditorKind` is what distinguishes them (the commit-message editor is `UNTYPED`).
+     */
+    @Suppress("OVERRIDE_DEPRECATION")
+    override fun isApplicable(dataContext: DataContext): Boolean {
+        val editor = CommonDataKeys.EDITOR.getData(dataContext) ?: return false
+        if (editor.editorKind != EditorKind.MAIN_EDITOR) return false
+        // commenting needs a real path to anchor to
+        return FileDocumentManager.getInstance().getFile(editor.document) != null
+    }
+
     override fun register(
         dataContext: DataContext,
         component: FloatingToolbarComponent,
         parentDisposable: Disposable,
     ) {
         val editor = CommonDataKeys.EDITOR.getData(dataContext) ?: return
-        // only file-backed editors (commenting needs a real path to anchor to)
-        if (FileDocumentManager.getInstance().getFile(editor.document) == null) return
 
         if (hasSelection(editor)) component.scheduleShow()
 
