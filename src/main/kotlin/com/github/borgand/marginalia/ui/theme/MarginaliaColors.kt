@@ -9,9 +9,9 @@ import java.awt.Color
 
 /**
  * Role-named design tokens (redesign §01). Every UI color in Marginalia dereferences a
- * member here — never a raw hex on a layer. Each token binds to the verbatim IntelliJ
- * Platform `api` from the design handoff (`docs/redesign/mg-tokens.jsx`) with the mock's
- * light/dark hexes as the [JBColor] fallback, so the whole UI follows the user's theme.
+ * member here — never a raw hex on a layer. Each token binds to a verbatim IntelliJ
+ * Platform `api` color with the redesign's light/dark hexes as the [JBColor] fallback,
+ * so the whole UI follows the user's theme.
  *
  * All members are computed getters so they re-resolve on every access — a stored value
  * would freeze at the theme active when the object loaded and not follow a theme switch.

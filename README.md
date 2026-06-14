@@ -11,8 +11,8 @@ document and your review comments as tools, and a merge engine that lands the ag
 edits into the buffer you are typing in — re-positioned around your concurrent edits,
 never clobbering them.
 
-See [docs/main-prd.md](docs/main-prd.md) for the full product requirements and
-[docs/decisions.md](docs/decisions.md) for implementation decisions taken along the way.
+See [docs/main-prd.md](docs/main-prd.md) for the full product requirements,
+architecture, and the remaining roadmap.
 
 ## How it works
 

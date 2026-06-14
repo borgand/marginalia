@@ -112,7 +112,7 @@ land correctly re-positioned, and both new comments dispatch on idle.
 No WYSIWYG editor, no JCEF editor pane, no Milkdown/ProseMirror, no webview. One shared
 buffer — byte-identical for user and agent — with visual richness delivered entirely as
 decorations over the bundled `org.intellij.plugins.markdown` PSI via platform extension
-points. Design spec: `docs/superpowers/specs/2026-06-13-phase2-markdown-rendering-design.md`.
+points.
 
 **Tier 1 — Annotator / FoldingBuilder / LineMarkerProvider (on by default):**
 
@@ -222,5 +222,4 @@ agent to call this per comment after editing.
    horizontal rule, structural folding (link URLs, frontmatter, HTML comments), image and
    Mermaid gutter popovers. All Tier 1 features toggle in `RenderSettings`.
 5. **M5:** Tier 2 custom folds — large H1/H2 title glyph, aligned table grid, opt-in
-   inline image fold (off by default). Design spec:
-   `docs/superpowers/specs/2026-06-13-phase2-markdown-rendering-design.md`.
+   inline image fold (off by default).
