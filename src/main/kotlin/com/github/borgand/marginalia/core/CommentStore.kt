@@ -100,6 +100,16 @@ class CommentStore(private val project: Project) : PersistentStateComponent<Comm
         notifyChanged()
     }
 
+    /** Removes comments matching [predicate]; disposes their markers. Returns how many were removed. */
+    fun removeWhere(predicate: (MarginaliaComment) -> Boolean): Int {
+        val doomed = state.comments.filter(predicate)
+        if (doomed.isEmpty()) return 0
+        state.comments.removeAll(doomed.toSet())
+        doomed.forEach { markers.remove(it.id)?.dispose() }
+        notifyChanged()
+        return doomed.size
+    }
+
     fun clear() {
         state.comments.clear()
         markers.values.forEach { it.dispose() }

@@ -65,6 +65,7 @@ class MarginaliaPanel(
     private val connectionChip = ConnectionChip()
     private val footer = FooterStatusPanel(this)
     private val baseBadge = BadgeIconSupplier(MarginaliaIcons.ToolWindow)
+    private var clearButton: JButton? = null
 
     init {
         toolbar = buildToolbar()
@@ -101,8 +102,15 @@ class MarginaliaPanel(
             }
         }
 
+        val clear = JButton("Clear", AllIcons.Actions.GC).apply {
+            toolTipText = "Remove resolved, failed, or all comments from the queue"
+            addActionListener { showClearMenu(this) }
+        }
+        clearButton = clear
+
         val right = JPanel(FlowLayout(FlowLayout.RIGHT, JBUI.scale(8), JBUI.scale(2))).apply {
             isOpaque = false
+            add(clear)
             add(submit)
             add(connectionChip)
         }
@@ -157,6 +165,41 @@ class MarginaliaPanel(
         })
     }
 
+    /** Pops the Clear dropdown; each item shows a live count and disables when empty. */
+    private fun showClearMenu(anchor: JComponent) {
+        val comments = store.comments()
+        val resolved = comments.filter { visualStatus(it) == VisualStatus.RESOLVED }
+        val failed = comments.filter { visualStatus(it) == VisualStatus.FAILED }
+
+        val menu = JPopupMenu()
+        menu.add(JMenuItem("Clear resolved (${resolved.size})").apply {
+            isEnabled = resolved.isNotEmpty()
+            addActionListener { clear("resolved") { visualStatus(it) == VisualStatus.RESOLVED } }
+        })
+        menu.add(JMenuItem("Clear failed (${failed.size})").apply {
+            isEnabled = failed.isNotEmpty()
+            addActionListener { clear("failed") { visualStatus(it) == VisualStatus.FAILED } }
+        })
+        menu.add(JMenuItem("Clear all (${comments.size})").apply {
+            isEnabled = comments.isNotEmpty()
+            addActionListener {
+                val confirmed = Messages.showYesNoDialog(
+                    project,
+                    "Remove all ${comments.size} comment(s)? This cannot be undone.",
+                    "Clear All Comments",
+                    Messages.getWarningIcon(),
+                ) == Messages.YES
+                if (confirmed) clear("all") { true }
+            }
+        })
+        menu.show(anchor, 0, anchor.height)
+    }
+
+    private fun clear(label: String, predicate: (MarginaliaComment) -> Boolean) {
+        val n = store.removeWhere(predicate)
+        service<ActivityLog>().log("clear $label: $n comment(s) removed")
+    }
+
     // ── behavior ──────────────────────────────────────────────────────────────
     private fun selectedComment(): MarginaliaComment? =
         (list.selectedValue as? SidecarRow.CommentRow)?.comment
@@ -200,6 +243,8 @@ class MarginaliaPanel(
         )
         connectionChip.update(view)
         footer.refresh()
+
+        clearButton?.isEnabled = comments.isNotEmpty()
 
         val queued = counts[VisualStatus.QUEUED] ?: 0
         toolWindow.setIcon(baseBadge.getWarningIcon(queued > 0))

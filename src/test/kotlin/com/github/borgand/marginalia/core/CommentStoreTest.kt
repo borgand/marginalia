@@ -124,6 +124,38 @@ class CommentStoreTest : BasePlatformTestCase() {
         assertEquals(listOf("Top", "Section"), comment.headingPath)
     }
 
+    fun testRemoveWhereRemovesMatchingAndDisposesMarkers() {
+        configure("alpha\nbravo\ncharlie\n")
+        val doc = myFixture.editor.document
+        val keep = store.addComment(doc, doc.text.indexOf("alpha"), doc.text.indexOf("alpha") + 5, "keep", CommentStatus.QUEUED)
+        val drop = store.addComment(doc, doc.text.indexOf("bravo"), doc.text.indexOf("bravo") + 5, "drop", CommentStatus.QUEUED)
+        store.setStatus(drop.id, CommentStatus.RESOLVED)
+
+        val removed = store.removeWhere { it.status == CommentStatus.RESOLVED }
+
+        assertEquals(1, removed)
+        assertEquals(listOf(keep.id), store.comments().map { it.id })
+        assertNull(store.markerFor(drop.id))
+        assertNotNull(store.markerFor(keep.id))
+    }
+
+    fun testRemoveWhereReturnsZeroWhenNoneMatch() {
+        configure("alpha\n")
+        val doc = myFixture.editor.document
+        store.addComment(doc, 0, 5, "x", CommentStatus.QUEUED)
+        assertEquals(0, store.removeWhere { it.status == CommentStatus.RESOLVED })
+        assertEquals(1, store.comments().size)
+    }
+
+    fun testRemoveWhereCanClearAll() {
+        configure("alpha\nbravo\n")
+        val doc = myFixture.editor.document
+        store.addComment(doc, doc.text.indexOf("alpha"), doc.text.indexOf("alpha") + 5, "a", CommentStatus.QUEUED)
+        store.addComment(doc, doc.text.indexOf("bravo"), doc.text.indexOf("bravo") + 5, "b", CommentStatus.QUEUED)
+        assertEquals(2, store.removeWhere { true })
+        assertTrue(store.comments().isEmpty())
+    }
+
     fun testHeadingPathOnlyForMarkdown() {
         configure("# not a heading, just Kotlin comment\nval x = 1\n", "code.kt")
         val doc = myFixture.editor.document
