@@ -4,6 +4,25 @@
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-06-15
+
+### Added
+- **Long-poll for `get_pending_comments`.** The MCP tool takes an optional `wait_seconds`
+  (0–1800): the call holds open until a comment is queued or the wait elapses (response is
+  tagged `timed_out` / `waited_seconds`). Idle waiting costs no agent tokens, and reaction to
+  new comments is near-immediate. Omitting `wait_seconds` (or `0`) keeps the one-shot read.
+
+### Changed
+- **`/marginalia` is now a self-terminating continuous loop.** It long-polls with
+  `wait_seconds: 1800`, replies `IDLE` when the queue is empty, and stops on its own after
+  three consecutive empty 30-minute holds (~90 minutes), so a forgotten session can't run up
+  cost. Replaces the previous `/loop 1m /marginalia` recommendation.
+
+### Fixed
+- **Release notes and assets.** GitHub release drafts are now prefilled from the matching
+  `CHANGELOG.md` section, and the built `marginalia-<version>.zip` plugin is attached to the
+  release as a downloadable asset.
+
 ## [1.0.1] - 2026-06-14
 
 ### Added

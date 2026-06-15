@@ -65,11 +65,11 @@ jobs:
           PRIVATE_KEY_PASSWORD: ${{ secrets.PRIVATE_KEY_PASSWORD }}
         run: ./gradlew publishPlugin
 
-      # Upload an artifact as a release asset
+      # Upload an artifact as a release asset (overwrite the ZIP already attached to the draft)
       - name: Upload Release Asset
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh release upload ${{ github.event.release.tag_name }} ./build/distributions/*
+        run: gh release upload ${{ github.event.release.tag_name }} ./build/distributions/* --clobber
 
       # Create a pull request
       - name: Create Pull Request
