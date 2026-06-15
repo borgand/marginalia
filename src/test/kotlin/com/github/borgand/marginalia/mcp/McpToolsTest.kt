@@ -188,7 +188,8 @@ class McpToolsTest : BasePlatformTestCase() {
         }
         assertEquals(0, result["comments"]!!.jsonArray.size)
         assertTrue(result["timed_out"]!!.jsonPrimitive.boolean)
-        assertEquals(1, result["waited_seconds"]!!.jsonPrimitive.int)
+        // ~1s wait; allow a 1-2s window so the assertion can't flake on a loaded machine.
+        assertTrue(result["waited_seconds"]!!.jsonPrimitive.int in 1..2)
     }
 
     fun testPollUntilReturnsAsSoonAsPredicatePopulates() {
