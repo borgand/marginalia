@@ -13,6 +13,8 @@ import com.intellij.openapi.editor.Document
 import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.project.ProjectManager
+import kotlinx.coroutines.delay
+import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.add
@@ -149,6 +151,9 @@ object McpTools {
         }
     }
 
+    /** Hard server ceiling for a single long-poll hold (seconds). */
+    const val MAX_WAIT_SECONDS = 1800
+
     fun getPendingComments(path: String?): JsonObject {
         touch("get_pending_comments")
         val projects = if (path == null) {
@@ -173,7 +178,58 @@ object McpTools {
                     }
                 }
             }
+            put("timed_out", false)
+            put("waited_seconds", 0)
         }
+    }
+
+    /**
+     * Long-poll wrapper over [getPendingComments]. With [waitSeconds] <= 0 this is the plain
+     * one-shot read. Otherwise it re-reads every [pollMillis] until comments appear or the
+     * deadline passes, then returns an empty result tagged `timed_out:true`. The returned
+     * `waited_seconds` reports the actual elapsed whole seconds spent waiting. Runs on the MCP
+     * server coroutine (background) — `delay` is cancellable, so a dropped client releases it.
+     */
+    suspend fun getPendingCommentsAwait(
+        path: String?,
+        waitSeconds: Int,
+        pollMillis: Long = 1000,
+    ): JsonObject {
+        val clamped = waitSeconds.coerceIn(0, MAX_WAIT_SECONDS)
+        if (clamped == 0) return getPendingComments(path)
+        val start = System.currentTimeMillis()
+        val result = pollUntil(clamped * 1000L, pollMillis) { getPendingComments(path) }
+        val elapsedSeconds = ((System.currentTimeMillis() - start) / 1000).toInt()
+        // Report how long we actually held the request before returning.
+        return buildJsonObject {
+            result.forEach { (k, v) -> if (k != "waited_seconds") put(k, v) }
+            put("waited_seconds", elapsedSeconds)
+        }
+    }
+
+    /**
+     * Re-evaluate [read] every [pollMillis] until it returns a non-empty `comments` array or
+     * [waitMillis] elapses. Pure loop (no IntelliJ deps) so it is unit-testable with a fake
+     * [read]. The returned object is [read]'s last value, with `timed_out` set accordingly.
+     */
+    suspend fun pollUntil(
+        waitMillis: Long,
+        pollMillis: Long,
+        read: () -> JsonObject,
+    ): JsonObject {
+        val deadline = System.currentTimeMillis() + waitMillis
+        while (true) {
+            val r = read()
+            val hasComments = (r["comments"] as? JsonArray)?.isNotEmpty() == true
+            if (hasComments) return withTimedOut(r, false)
+            if (System.currentTimeMillis() >= deadline) return withTimedOut(r, true)
+            delay(pollMillis)
+        }
+    }
+
+    private fun withTimedOut(obj: JsonObject, timedOut: Boolean): JsonObject = buildJsonObject {
+        obj.forEach { (k, v) -> if (k != "timed_out") put(k, v) }
+        put("timed_out", timedOut)
     }
 
     fun resolveComment(id: String, note: String?): JsonObject {

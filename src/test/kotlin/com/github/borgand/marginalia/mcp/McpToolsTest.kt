@@ -13,6 +13,11 @@ import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.long
+import kotlinx.coroutines.runBlocking
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.add
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.putJsonArray
 
 class McpToolsTest : BasePlatformTestCase() {
 
@@ -153,5 +158,53 @@ class McpToolsTest : BasePlatformTestCase() {
     fun testApplyEditOnNonCoEditedPath() {
         val result = McpTools.applyEdit("/not/registered.md", 1, listOf("a" to "b"))
         assertEquals("NOT_CO_EDITED", result.errorCode())
+    }
+
+    fun testGetPendingCommentsDefaultReportsNotTimedOut() {
+        coEditedDoc("# H\n\nbody\n")
+        val result = McpTools.getPendingComments(null)
+        assertEquals(0, result["comments"]!!.jsonArray.size)
+        assertFalse(result["timed_out"]!!.jsonPrimitive.boolean)
+        assertEquals(0, result["waited_seconds"]!!.jsonPrimitive.int)
+    }
+
+    fun testAwaitReturnsImmediatelyWhenCommentAlreadyQueued() {
+        val path = coEditedDoc("# H\n\nimprove this paragraph\n")
+        val doc = myFixture.editor.document
+        val start = doc.text.indexOf("improve")
+        store.addComment(doc, start, start + 7, "be specific", CommentStatus.QUEUED)
+
+        val result = runBlocking { McpTools.getPendingCommentsAwait(null, waitSeconds = 30) }
+
+        assertEquals(1, result["comments"]!!.jsonArray.size)
+        assertFalse(result["timed_out"]!!.jsonPrimitive.boolean)
+        assertEquals(path, result["comments"]!!.jsonArray[0].jsonObject["path"]!!.jsonPrimitive.content)
+    }
+
+    fun testAwaitTimesOutWhenNoComments() {
+        coEditedDoc("# H\n\nbody\n")
+        val result = runBlocking {
+            McpTools.getPendingCommentsAwait(null, waitSeconds = 1, pollMillis = 20)
+        }
+        assertEquals(0, result["comments"]!!.jsonArray.size)
+        assertTrue(result["timed_out"]!!.jsonPrimitive.boolean)
+        assertEquals(1, result["waited_seconds"]!!.jsonPrimitive.int)
+    }
+
+    fun testPollUntilReturnsAsSoonAsPredicatePopulates() {
+        var calls = 0
+        val populated = buildJsonObject {
+            putJsonArray("comments") { add(JsonPrimitive("x")) }
+        }
+        val empty = buildJsonObject { putJsonArray("comments") {} }
+        val result = runBlocking {
+            McpTools.pollUntil(waitMillis = 5_000, pollMillis = 10) {
+                calls++
+                if (calls >= 3) populated else empty
+            }
+        }
+        assertEquals(1, result["comments"]!!.jsonArray.size)
+        assertFalse(result["timed_out"]!!.jsonPrimitive.boolean)
+        assertEquals(3, calls)
     }
 }

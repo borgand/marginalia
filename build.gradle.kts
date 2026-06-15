@@ -12,6 +12,14 @@ kotlin {
         // generates synthetic overrides of @ApiStatus.Internal interface defaults
         // (ToolWindowFactory.getAnchor/getIcon) that the plugin verifier rejects
         jvmDefault.set(org.jetbrains.kotlin.gradle.dsl.JvmDefaultMode.NO_COMPATIBILITY)
+        // The plugin runs on the platform's Kotlin 2.1.21 runtime. Kotlin 2.3+ bumped the
+        // coroutine @DebugMetadata version to 2, which that runtime's debug agent rejects
+        // ("Debug metadata version mismatch. Expected: 1, got 2") the moment a suspend function
+        // we compiled actually suspends — surfaced by get_pending_comments long-poll under the
+        // IntelliJ test coroutine agent. Pinning to language version 2.2 keeps emitted metadata
+        // at v1, matching the runtime, consistent with the binary-compat rule above.
+        languageVersion.set(org.jetbrains.kotlin.gradle.dsl.KotlinVersion.KOTLIN_2_2)
+        apiVersion.set(org.jetbrains.kotlin.gradle.dsl.KotlinVersion.KOTLIN_2_2)
     }
 }
 
@@ -46,6 +54,9 @@ dependencies {
     implementation("io.ktor:ktor-server-content-negotiation:3.2.3") { excludePlatformKotlin() }
     implementation("io.ktor:ktor-serialization-kotlinx-json:3.2.3") { excludePlatformKotlin() }
     compileOnly("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.2")
+    // Test sources call delay()/runBlocking directly; the platform supplies the
+    // patched coroutines runtime, so this is compile-only like the main dependency.
+    testCompileOnly("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.2")
     // Hunk extraction for the merge engine
     implementation("io.github.java-diff-utils:java-diff-utils:4.16")
 
