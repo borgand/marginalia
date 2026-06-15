@@ -96,7 +96,7 @@ sequenceDiagram
 
     You->>M: select text → comment
     Note over M: anchored, queued
-    Agent->>M: get_pending_comments<br/>(idle / /marginalia)
+    Agent->>M: get_pending_comments<br/>(long-poll via /marginalia)
     M->>Agent: comments delivered
     Note over You: keep typing ✏️
     Agent->>M: apply_edit (old→new)<br/>edits back
@@ -106,8 +106,10 @@ sequenceDiagram
 ```
 
 1. You comment on a text range. The file becomes **co-edited** and the comment is queued.
-2. The agent pulls comments via the `get_pending_comments` MCP tool — run the shipped
-   `/marginalia` slash command, or just tell it to check.
+2. The agent pulls comments via the `get_pending_comments` MCP tool. The recommended way to
+   run it is a single **`/marginalia`** — it long-polls the queue (holding the call open until
+   you comment), addresses what arrives, and stops on its own after ~90 minutes idle so a
+   forgotten session can't run up cost. See [Continuous monitoring](#continuous-monitoring).
 3. A **PreToolUse hook** denies the agent's native `Edit`/`Write` on co-edited files and
    redirects it to `mcp__marginalia__apply_edit`, which merges hunks into the live buffer.
    Conflicts with your edits are returned to the agent. **User wins.**
@@ -115,12 +117,39 @@ sequenceDiagram
 
 ---
 
+## Continuous monitoring
+
+You want the agent to pick up comments as you write, without babysitting it. Pick one:
+
+- **Recommended — plain `/marginalia`.** It calls `get_pending_comments` with a 30-minute
+  long-poll: the call holds open and returns the instant you queue a comment, so reaction is
+  near-immediate while idle polling costs almost nothing. After 3 consecutive empty 30-minute
+  holds (~90 minutes with no comments) it **stops by itself** and tells you to re-run
+  `/marginalia`. This auto-stop is deliberate: a session you forget about cannot keep burning
+  tokens overnight.
+
+- **Alternative — `/loop Use MonitorTool to poll /marginalia command for new comments`.** A
+  background monitor tool checks the queue with a smaller per-iteration footprint. Use this if
+  you specifically want a `/loop`.
+
+  > ⚠️ **A forgotten `/loop` never stops on its own and keeps accruing cost.** An idle overnight
+  > `/loop` session once ran up roughly **$150** doing no useful work. Only use `/loop` if you
+  > will remember to end it.
+
+> The old advice to run **`/loop 1m /marginalia`** is discouraged — re-running the command every
+> minute spends tokens continuously even when the queue is empty, with no natural stopping point.
+> Prefer plain `/marginalia`.
+
+---
+
 ## Workflows
 
 **As-I-go review (the primary flow).**
-Read the doc the agent drafted. Select a sentence → <kbd>Ctrl/Cmd+Alt+M</kbd> → "too vague,
-give concrete failure modes" → keep reading. With auto-dispatch on, comments reach the agent
-the moment it's idle, and its edits arrive inline. You never stop to wait.
+Start the agent with `/marginalia` so it long-polls the queue on its own. Read the
+doc the agent drafted. Select a sentence → <kbd>Ctrl/Cmd+Alt+M</kbd> → "too vague, give
+concrete failure modes" → keep reading. With auto-dispatch on, comments reach the agent within
+the next poll, and its edits arrive inline. You never stop to wait, and you never have to tell
+it to check.
 
 **Batch review ("submit review").**
 Toggle auto-dispatch off, accumulate comments across several sections, then flush them as a
@@ -167,7 +196,10 @@ same mechanism — native editor, no webview.
    - a `PreToolUse` hook entry in `~/.claude/settings.json`
    - `~/.claude/commands/marginalia.md` — the `/marginalia` slash command
 
-That's it. Open a file, add a comment, and ask your agent to check Marginalia.
+That's it. Open a file, add a comment, and start the agent with **`/marginalia`** — it
+long-polls for your comments and addresses them as they arrive, then stops on its own after
+~90 minutes idle. See [Continuous monitoring](#continuous-monitoring) for the trade-offs and a
+lower-footprint `/loop` alternative.
 
 ---
 
