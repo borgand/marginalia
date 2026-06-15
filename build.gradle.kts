@@ -58,7 +58,7 @@ dependencies {
     // patched coroutines runtime, so this is compile-only like the main dependency.
     testCompileOnly("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.2")
     // Hunk extraction for the merge engine
-    implementation("io.github.java-diff-utils:java-diff-utils:4.16")
+    implementation("io.github.java-diff-utils:java-diff-utils:4.17")
 
     testImplementation("junit:junit:4.13.2")
 
