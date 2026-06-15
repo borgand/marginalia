@@ -103,18 +103,25 @@ object McpServerBuilder {
             name = "get_pending_comments",
             description = "Fetch the user's pending review comments (optionally for one file) and " +
                 "mark them dispatched. For each comment: read_doc the file, make the requested " +
-                "change via apply_edit, then call resolve_comment with a short note.",
+                "change via apply_edit, then call resolve_comment with a short note. Pass " +
+                "wait_seconds (1-1800) to long-poll: the call holds open until a comment arrives " +
+                "or the wait elapses (response has timed_out:true). Omit it (or 0) for a one-shot read.",
             inputSchema = ToolSchema(
                 properties = buildJsonObject {
                     putJsonObject("path") {
                         put("type", "string")
                         put("description", "Optional: only comments for this absolute path")
                     }
+                    putJsonObject("wait_seconds") {
+                        put("type", "integer")
+                        put("description", "Optional long-poll hold in seconds (0-1800, default 0 = immediate)")
+                    }
                 },
             ),
         ) { request ->
             val path = request.arguments.string("path")
-            McpTools.getPendingComments(path).toResult()
+            val waitSeconds = request.arguments.int("wait_seconds") ?: 0
+            McpTools.getPendingCommentsAwait(path, waitSeconds).toResult()
         }
 
         server.addTool(
@@ -139,6 +146,9 @@ object McpServerBuilder {
 
     private fun JsonObject?.string(key: String): String? =
         this?.get(key)?.jsonPrimitive?.takeIf { it.isString }?.content
+
+    private fun JsonObject?.int(key: String): Int? =
+        this?.get(key)?.jsonPrimitive?.content?.toIntOrNull()
 
     private fun JsonObject.toResult() = CallToolResult(
         content = listOf(TextContent(toString())),
