@@ -48,11 +48,11 @@ dependencies {
     // MCP server (Streamable HTTP) — official Kotlin SDK; Ktor engine is not transitive.
     // Pinned to the last release built with Kotlin 2.2.x so it runs on IntelliJ 2025.2.
     implementation("io.modelcontextprotocol:kotlin-sdk-server:0.10.0") { excludePlatformKotlin() }
-    implementation("io.ktor:ktor-server-cio:3.2.3") { excludePlatformKotlin() }
+    implementation("io.ktor:ktor-server-cio:3.5.0") { excludePlatformKotlin() }
     // SDK 0.10.0 does NOT install ContentNegotiation itself (0.13.0 does); without it every
     // JSON response on the POST endpoint returns an empty-body HTTP 406. We install it.
-    implementation("io.ktor:ktor-server-content-negotiation:3.2.3") { excludePlatformKotlin() }
-    implementation("io.ktor:ktor-serialization-kotlinx-json:3.2.3") { excludePlatformKotlin() }
+    implementation("io.ktor:ktor-server-content-negotiation:3.5.0") { excludePlatformKotlin() }
+    implementation("io.ktor:ktor-serialization-kotlinx-json:3.5.0") { excludePlatformKotlin() }
     compileOnly("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.2")
     // Test sources call delay()/runBlocking directly; the platform supplies the
     // patched coroutines runtime, so this is compile-only like the main dependency.
