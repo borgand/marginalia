@@ -23,6 +23,22 @@ plan mode, all intact. Marginalia adds the one thing a chat box can't: a shared 
 
 ---
 
+## Quick Start
+
+Four steps and you're co-editing:
+
+1. **Install the plugin** from the [JetBrains Marketplace](https://plugins.jetbrains.com/plugin/32287) (<kbd>Settings</kbd> → <kbd>Plugins</kbd> → <kbd>Marketplace</kbd> → search *Marginalia* → <kbd>Install</kbd>).
+2. **Register the MCP server** with Claude Code (once):
+   ```bash
+   claude mcp add --transport http marginalia http://localhost:4747/mcp
+   ```
+3. **Install the Claude Code integration** — <kbd>Tools</kbd> → <kbd>Marginalia: Install Claude Code Integration</kbd> (installs the edit-routing hook and the `/marginalia` command).
+4. **Open a file, add a comment, and run `/marginalia`** in the agent — it long-polls for your comments and addresses them as they arrive.
+
+See [Setup](#setup) for the full details and the build-from-source path.
+
+---
+
 ## Why Marginalia
 
 Iterating on a PRD, an architecture doc, or freshly generated code with an agent usually

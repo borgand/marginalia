@@ -4,6 +4,18 @@
 
 ## [Unreleased]
 
+## [1.1.1] - 2026-06-22
+
+### Added
+- **Quick Start guide** in README and Marketplace description — four steps from install to
+  first co-edit session.
+
+### Fixed
+- **Threading crash when adding a comment.** `DocRegistry.register` read the document model
+  (`getDocument` / `document.text`) directly on the EDT, throwing
+  `Read access is allowed from inside read-action only`. The reads are now wrapped in a
+  `ReadAction`, protecting both EDT-driven callers (add-comment and toggle-co-edit).
+
 ## [1.1.0] - 2026-06-15
 
 ### Added

@@ -1,7 +1,9 @@
 package com.github.borgand.marginalia.core
 
 import com.intellij.openapi.Disposable
+import com.intellij.openapi.application.ReadAction
 import com.intellij.openapi.components.Service
+import com.intellij.openapi.editor.Document
 import com.intellij.openapi.editor.event.DocumentEvent
 import com.intellij.openapi.editor.event.DocumentListener
 import com.intellij.openapi.fileEditor.FileDocumentManager
@@ -40,9 +42,13 @@ class DocRegistry(@Suppress("unused") private val project: Project) : Disposable
     /** Returns false if already registered or the file has no document. */
     fun register(file: VirtualFile): Boolean {
         if (docs.containsKey(file.path)) return false
-        val document = FileDocumentManager.getInstance().getDocument(file) ?: return false
+        // getDocument + document.text are model reads; callers may be on the EDT
+        // without an active read action (e.g. action listeners), so guard explicitly.
+        val document = ReadAction.compute<Document?, RuntimeException> {
+            FileDocumentManager.getInstance().getDocument(file)
+        } ?: return false
         val entry = Entry(file)
-        entry.lastSynced = document.text
+        entry.lastSynced = ReadAction.compute<String, RuntimeException> { document.text }
         docs[file.path] = entry
         document.addDocumentListener(object : DocumentListener {
             override fun documentChanged(event: DocumentEvent) {

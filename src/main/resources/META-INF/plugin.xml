@@ -18,6 +18,16 @@
         </ul>
         <p><img src="https://raw.githubusercontent.com/borgand/marginalia/main/docs/images/tool-window.png"
                 alt="The Marginalia review sidecar" width="700"></p>
+        <p><b>Quick start</b> — four steps and you're co-editing:</p>
+        <ol>
+            <li>Install this plugin from the JetBrains Marketplace.</li>
+            <li>Register the MCP server with Claude Code (once):
+                <code>claude mcp add --transport http marginalia http://localhost:4747/mcp</code></li>
+            <li>Run <b>Tools → Marginalia: Install Claude Code Integration</b> to install the
+                edit-routing hook and the <code>/marginalia</code> command.</li>
+            <li>Open a file, add a comment, and run <code>/marginalia</code> in the agent — it
+                long-polls for your comments and addresses them as they arrive.</li>
+        </ol>
     ]]></description>
 
     <depends>com.intellij.modules.platform</depends>
