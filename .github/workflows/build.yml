@@ -179,7 +179,7 @@ jobs:
 
       # Pull the plugin ZIP built by the 'build' job so it can be attached to the release draft
       - name: Download plugin artifact
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           name: plugin-distribution
           path: build/distributions
