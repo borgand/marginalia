@@ -53,10 +53,10 @@ dependencies {
     // JSON response on the POST endpoint returns an empty-body HTTP 406. We install it.
     implementation("io.ktor:ktor-server-content-negotiation:3.2.3") { excludePlatformKotlin() }
     implementation("io.ktor:ktor-serialization-kotlinx-json:3.2.3") { excludePlatformKotlin() }
-    compileOnly("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.2")
+    compileOnly("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.11.0")
     // Test sources call delay()/runBlocking directly; the platform supplies the
     // patched coroutines runtime, so this is compile-only like the main dependency.
-    testCompileOnly("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.2")
+    testCompileOnly("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.11.0")
     // Hunk extraction for the merge engine
     implementation("io.github.java-diff-utils:java-diff-utils:4.16")
 
